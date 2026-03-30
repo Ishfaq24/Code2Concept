@@ -1,4 +1,4 @@
-﻿# Code2Concept
+#﻿# Code2Concept
 # 🏗️ Code2Concept — Architecture Document
 
 > **Code2Concept** is an AI-powered educational video generation platform that transforms any topic into an animated teaching video. It combines deterministic script generation with optional AI enhancement (Google Gemini) and Manim-based mathematical animation rendering — all served through a clean FastAPI backend.
