@@ -1,0 +1,18 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+}
+
+input {
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
