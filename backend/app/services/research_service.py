@@ -12,15 +12,14 @@ def generate_research(topic: str):
     Include:
     - title
     - concept
-    - steps (list)
-    - simple example
+    - key_points (list of 6+ points)
 
     Return ONLY JSON.
     """
 
     try:
         res = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt
         )
         return res.text
