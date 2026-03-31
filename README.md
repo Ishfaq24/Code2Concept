@@ -52,40 +52,65 @@ The architecture follows a **resilient pipeline pattern** — the core flow alwa
 ## 📁 Directory Structure
 
 ```
+ARCHITECTURE.md                     # Detailed architecture document
+architecture.tldr                   # Short architecture summary
+README.md                           # Project overview and setup docs
 backend/
-├── app/                            # Application source code
-│   ├── main.py                     # FastAPI application factory & router registration
+├── app/                            # FastAPI backend source code
+│   ├── main.py                     # App entrypoint and router registration
 │   ├── routes/
-│   │   └── generate.py             # API endpoint definitions & pipeline orchestration
+│   │   └── generate.py             # /generate and /video endpoints
 │   ├── schemas/
-│   │   └── request.py              # Pydantic request models (input validation)
+│   │   └── request.py              # Pydantic request schema
 │   ├── services/
-│   │   ├── llm_service.py          # Deterministic teaching script & Manim code generation
-│   │   ├── research_service.py     # AI-powered topic research via Google Gemini
-│   │   ├── refine_service.py       # AI-powered Manim code refinement via Google Gemini
-│   │   ├── animation_service.py    # Alternative AI animation generator (experimental, unused)
-│   │   └── manim_service.py        # File I/O & Manim CLI subprocess rendering
+│   │   ├── llm_service.py          # Deterministic script and Manim code generation
+│   │   ├── research_service.py     # Gemini-based topic research
+│   │   ├── refine_service.py       # Gemini-based code refinement
+│   │   ├── animation_service.py    # Experimental animation generation path
+│   │   └── manim_service.py        # Save scene code and render with Manim CLI
 │   └── utils/
-│       └── clean_code.py           # Post-processing utility for LLM output sanitization
+│       └── clean_code.py           # Removes markdown fences from generated code
 ├── generated/
-│   └── scene.py                    # Runtime-generated Manim scene file (overwritten per request)
-├── media/                          # Manim render output directory
+│   ├── scene.py                    # Generated Manim scene (overwritten per request)
+│   └── media/                      # Intermediate render artifacts from Manim
+├── media/
+│   ├── images/scene/               # Frame/image artifacts
+│   ├── texts/                      # Manim text cache
 │   └── videos/scene/480p15/
-│       └── DemoScene.mp4           # Final rendered video artifact
-├── requirements.txt                # Python dependency manifest
-└── .env                            # Environment variables (GEMINI_API_KEY)
+│       └── partial_movie_files/
+│           └── DemoScene/          # Partial clips and ffmpeg list files
+├── requirements.txt                # Python dependencies
+└── .env                            # Backend environment variables
+frontend/
+├── index.html                      # Vite HTML entrypoint
+├── package.json                    # Frontend scripts and dependencies
+├── package-lock.json               # Locked dependency graph
+├── vite.config.js                  # Vite configuration
+├── eslint.config.js                # ESLint configuration
+├── public/                         # Static assets served as-is
+└── src/
+    ├── main.jsx                    # React bootstrap
+    ├── App.jsx                     # Root app component
+    ├── api.js                      # API client helper
+    ├── App.css                     # App-level styles
+    ├── index.css                   # Global styles
+    ├── assets/                     # Bundled assets
+    └── components/
+        ├── Loader.jsx              # Loading indicator component
+        ├── VideoPlayer.jsx         # Video playback component
+        └── VideoPlayer.css         # Styles for video player
 ```
 
 ### Key Observations
 
 | Directory      | Role                                                                                           |
 | -------------- | ---------------------------------------------------------------------------------------------- |
-| `app/routes`   | Thin controller layer — orchestrates the pipeline, delegates all logic to services              |
-| `app/services` | Business logic layer — each service is single-responsibility and independently testable         |
-| `app/schemas`  | Data contract layer — enforces API input structure via Pydantic                                 |
-| `app/utils`    | Stateless utility functions — pure transformations with no side effects                         |
-| `generated/`   | Ephemeral workspace — holds the latest generated Manim scene file (overwritten on each request) |
-| `media/`       | Output artifact store — Manim writes rendered videos here                                      |
+| `backend/app/routes`   | Thin controller layer that orchestrates the generation pipeline and delegates to services |
+| `backend/app/services` | Business logic layer for script generation, research, refinement, and rendering            |
+| `backend/app/schemas`  | API contracts and input validation via Pydantic                                            |
+| `backend/generated`    | Ephemeral generated code and intermediate artifacts                                         |
+| `backend/media`        | Render output and caches produced by Manim                                                 |
+| `frontend/src`         | React UI source, API integration, and reusable components                                  |
 
 ---
 

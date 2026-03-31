@@ -1,0 +1,26 @@
+.video-player-wrapper {
+  /* Center the player and make it responsive */
+  width: 100%;
+  max-width: 800px;
+  margin: 32px auto;
+  
+  /* Modern UI aesthetics */
+  background-color: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.video-player-element {
+  /* Ensure the video fills the wrapper responsively */
+  width: 100%;
+  height: auto;
+  display: block;
+  
+  /* Standard 16:9 aspect ratio */
+  aspect-ratio: 16 / 9;
+  
+  /* Remove the default focus outline when clicking the video */
+  outline: none;
+}
