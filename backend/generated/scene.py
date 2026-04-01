@@ -3,12 +3,12 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        title = Text("Machine Learning").scale(1.2).to_edge(UP)
+        title = Text("What Is Gini Impurity ").scale(1.2).to_edge(UP)
         self.play(Write(title))
         self.wait(1)
         
         
-        step0 = Text("Machine Learning helps solve real-world problems").scale(0.5)
+        step0 = Text("What Is Gini Impurity  helps solve real-world problems").scale(0.5)
         step0.next_to(title, DOWN*1)
         self.play(Write(step0))
         self.wait(1)
