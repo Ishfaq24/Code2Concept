@@ -1,88 +1,97 @@
-from google import genai
+"""
+Refinement service for Manim code.
+Currently uses simple feedback application instead of LLM refinement
+to avoid hitting API rate limits.
+"""
+
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 def refine_code(code: str, attempt: int = 1) -> str:
-    """Refine Manim code with multiple retry attempts"""
-    
-    if attempt > 3:
-        print("❌ Max refinement attempts reached")
-        return code
-    
-    prompt = f"""
-    Fix this Manim code for errors. IMPORTANT:
-    
-    - Fix ANY syntax errors
-    - Ensure all imports are correct
-    - Fix undefined variables
-    - Keep the animations beautiful
-    - Do NOT add new features
-    
-    Return ONLY Python code, no markdown.
-    
-    CODE:
-    {code}
     """
+    Skip LLM refinement - generated code is pre-validated.
     
-    try:
-        res = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        refined_code = res.text.strip()
+    Args:
+        code: The Manim code to refine
+        attempt: Current attempt number (unused, for compatibility)
         
-        if refined_code.startswith("```"):
-            refined_code = refined_code.split("```")[1]
-            if refined_code.startswith("python"):
-                refined_code = refined_code[6:]
-            refined_code = refined_code.split("```")[0]
-        
-        refined_code = refined_code.strip()
-        
-        print(f"✅ Code refined (Attempt {attempt}/3)")
-        return refined_code
-        
-    except Exception as e:
-        print(f"⚠️ Refinement attempt {attempt} failed: {e}")
-        if attempt < 3:
-            print(f"🔄 Retrying...")
-            return refine_code(code, attempt + 1)
-        return code
+    Returns:
+        str: The same code (already validated)
+    """
+    print("⏭️  Refinement skipped (using pre-validated generated code)")
+    return code
 
 
 def get_refinement_feedback(code: str, user_feedback: str) -> str:
-    """Apply user feedback to refine code"""
+    """
+    Apply user feedback to code using simple string modifications.
+    Avoids LLM calls to prevent rate limiting.
     
-    prompt = f"""
-    Apply these user changes to the Manim code:
-    
-    USER REQUEST: {user_feedback}
-    
-    Current code:
-    {code}
-    
-    Return ONLY updated Python code, no markdown.
+    Args:
+        code: Current Manim code
+        user_feedback: User's requested changes
+        
+    Returns:
+        str: Modified code based on feedback
     """
     
-    try:
-        res = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        updated_code = res.text.strip()
-        
-        if updated_code.startswith("```"):
-            updated_code = updated_code.split("```")[1]
-            if updated_code.startswith("python"):
-                updated_code = updated_code[6:]
-            updated_code = updated_code.split("```")[0]
-        
-        print("✅ User feedback applied")
-        return updated_code
-        
-    except Exception as e:
-        print(f"❌ Failed to apply feedback: {e}")
-        return code
+    print(f"✨ Applying user feedback: {user_feedback}")
+    
+    feedback_lower = user_feedback.lower()
+    modified_code = code
+    
+    # Timing modifications
+    if "slower" in feedback_lower or "slow" in feedback_lower:
+        modified_code = modified_code.replace("run_time=0.8", "run_time=1.5")
+        modified_code = modified_code.replace("run_time=1", "run_time=1.8")
+        modified_code = modified_code.replace("run_time=1.2", "run_time=2")
+        print("   ⏱️ Animations slowed down")
+    
+    if "faster" in feedback_lower or "speed" in feedback_lower:
+        modified_code = modified_code.replace("run_time=2", "run_time=1")
+        modified_code = modified_code.replace("run_time=1.8", "run_time=1.2")
+        modified_code = modified_code.replace("run_time=1.5", "run_time=0.8")
+        print("   ⚡ Animations sped up")
+    
+    # Color modifications
+    if "dark" in feedback_lower or "darker" in feedback_lower:
+        modified_code = modified_code.replace("#0a0a0a", "#000000")
+        print("   🌑 Background darkened")
+    
+    if "bright" in feedback_lower or "lighter" in feedback_lower or "light" in feedback_lower:
+        modified_code = modified_code.replace("#0a0a0a", "#1a1a1a")
+        print("   ☀️ Background lightened")
+    
+    # Font size modifications
+    if "larger" in feedback_lower or "bigger" in feedback_lower or "large text" in feedback_lower:
+        modified_code = modified_code.replace("font_size=24,", "font_size=32,")
+        modified_code = modified_code.replace("font_size=26,", "font_size=34,")
+        modified_code = modified_code.replace("font_size=56,", "font_size=64,")
+        print("   📝 Text size increased")
+    
+    if "smaller" in feedback_lower or "smaller text" in feedback_lower:
+        modified_code = modified_code.replace("font_size=32,", "font_size=24,")
+        modified_code = modified_code.replace("font_size=34,", "font_size=26,")
+        modified_code = modified_code.replace("font_size=64,", "font_size=48,")
+        print("   📝 Text size decreased")
+    
+    # Wait time modifications (affects overall pacing)
+    if "longer" in feedback_lower or "longer pauses" in feedback_lower:
+        modified_code = modified_code.replace("self.wait(1)", "self.wait(2)")
+        modified_code = modified_code.replace("self.wait(1.8)", "self.wait(2.5)")
+        print("   ⏸️ Pause durations increased")
+    
+    if "shorter" in feedback_lower or "faster paced" in feedback_lower:
+        modified_code = modified_code.replace("self.wait(2)", "self.wait(1)")
+        modified_code = modified_code.replace("self.wait(2.5)", "self.wait(1.5)")
+        print("   ⏩ Pause durations decreased")
+    
+    if modified_code != code:
+        print("✅ Feedback applied successfully")
+    else:
+        print("ℹ️ No recognized feedback patterns applied")
+    
+    return modified_code
