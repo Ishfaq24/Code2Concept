@@ -75,17 +75,20 @@ def render_video(
         print(f"   Timeout: {timeout}s")
         
         # Run Manim command
+        # IMPORTANT: CLI options must come before the script path for
+        # the Click-based Manim CLI; otherwise flags like -pql/-pqh are
+        # interpreted as unknown options and rendering fails.
         result = subprocess.run(
             [
                 "manim",
+                flag,
+                f"--frame_rate={fps}",
                 "generated/scene.py",
                 "DemoScene",
-                flag,
-                f"--frame_rate={fps}"
             ],
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
         )
         
         if result.returncode == 0:

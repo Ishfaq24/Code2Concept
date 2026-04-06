@@ -1,5 +1,5 @@
 const Loader = () => {
-  return <p>⏳ Generating video... please wait</p>;
+  return <span className="loader-text">⏳ Generating video…</span>;
 };
 
 export default Loader;

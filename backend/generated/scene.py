@@ -1,59 +1,124 @@
 from manim import *
+
 class DemoScene(Scene):
     def construct(self):
-        self.camera.background_color = "#0a0a0a"
-        title = Text("Merge Sort Algorithm", font_size=48, color=BLUE)
+        # --- SECTION 1: Introduction ---
+        title = Text("Decoding the Caesar Cipher", font_size=40)
         title.to_edge(UP)
-        self.play(Write(title), run_time=1.5)
+        self.play(Write(title))
         self.wait(1)
-        desc = Text("A Divide and Conquer Sorting Algorithm", font_size=24, color=GREY_B)
-        desc.next_to(title, DOWN*0.5)
-        self.play(FadeIn(desc), run_time=1)
-        self.wait(2)
-        self.play(FadeOut(desc), run_time=1)
-        array_vals = [38, 27, 43, 3, 9, 82, 10]
-        rects = VGroup(*[Rectangle(width=0.8, height=0.8, color=WHITE) for _ in array_vals])
-        labels = VGroup(*[Text(str(v), font_size=20, color=WHITE) for v in array_vals])
-        for i in range(len(rects)):
-            labels[i].move_to(rects[i].get_center())
-        array_group = VGroup(rects, labels).center()
-        self.play(Create(rects), Write(labels), run_time=2)
+
+        intro_text1 = Text("A substitution cipher where letters", font_size=28)
+        intro_text1.next_to(title, DOWN, buff=1)
+
+        intro_text2 = Text("are shifted by a fixed number.", font_size=28)
+        intro_text2.next_to(intro_text1, DOWN, buff=0.5)
+
+        self.play(Write(intro_text1))
         self.wait(1)
-        step1 = Text("Step 1: Divide", font_size=30, color=YELLOW)
-        step1.to_edge(LEFT).shift(UP*2)
-        self.play(Write(step1), run_time=1)
+        self.play(Write(intro_text2))
+        self.wait(2)
+
+        self.play(FadeOut(title), FadeOut(intro_text1), FadeOut(intro_text2))
+
+        # --- SECTION 2: The Logic ---
+        logic_title = Text("The Decoding Rule", font_size=36)
+        logic_title.to_edge(UP)
+        self.play(Write(logic_title))
+
+        rule_text = Text("Decoded = (Encoded - Shift) mod 26", font_size=32, color=YELLOW)
+        rule_text.next_to(logic_title, DOWN, buff=1)
+        self.play(Write(rule_text))
+        self.wait(2)
+
+        expl1 = Text("1. Find the shift value", font_size=28)
+        expl1.next_to(rule_text, DOWN, buff=1)
+
+        expl2 = Text("2. Shift backwards in the alphabet", font_size=28)
+        expl2.next_to(expl1, DOWN, buff=0.5)
+
+        expl3 = Text("3. Repeat for every letter", font_size=28)
+        expl3.next_to(expl2, DOWN, buff=0.5)
+
+        expl_group = VGroup(expl1, expl2, expl3).arrange(DOWN, aligned_edge=LEFT, buff=0.4)
+        expl_group.next_to(rule_text, DOWN, buff=1)
+
+        self.play(Write(expl1))
         self.wait(1)
-        left_half = VGroup(rects[0:4], labels[0:4]).shift(LEFT*2 + DOWN*1)
-        right_half = VGroup(rects[4:7], labels[4:7]).shift(RIGHT*2 + DOWN*1)
-        self.play(ReplacementTransform(array_group, VGroup(left_half, right_half)), run_time=2)
-        self.wait(2)
-        step2 = Text("Step 2: Conquer (Recursive Split)", font_size=30, color=ORANGE)
-        step2.next_to(step1, DOWN*0.8)
-        self.play(Write(step2), run_time=1)
+        self.play(Write(expl2))
         self.wait(1)
-        l1 = VGroup(rects[0:2], labels[0:2]).shift(LEFT*4 + DOWN*2)
-        l2 = VGroup(rects[2:4], labels[2:4]).shift(LEFT*1 + DOWN*2)
-        r1 = VGroup(rects[4:6], labels[4:6]).shift(RIGHT*1 + DOWN*2)
-        r2 = VGroup(rects[6:7], labels[6:7]).shift(RIGHT*4 + DOWN*2)
-        self.play(ReplacementTransform(left_half, VGroup(l1, l2)), ReplacementTransform(right_half, VGroup(r1, r2)), run_time=2)
+        self.play(Write(expl3))
         self.wait(2)
-        step3 = Text("Step 3: Merge and Sort", font_size=30, color=GREEN)
-        step3.next_to(step2, DOWN*0.8)
-        self.play(Write(step3), run_time=1)
+
+        self.play(FadeOut(*self.mobjects))
+
+        # --- SECTION 3: Visual Example ---
+        ex_title = Text("Example: Shift = 3", font_size=36)
+        ex_title.to_edge(UP)
+        self.play(Write(ex_title))
+
+        # Ciphertext
+        cipher_text = Text("Encoded: 'KHOOR'", font_size=32)
+        cipher_text.next_to(ex_title, DOWN, buff=1)
+        self.play(Write(cipher_text))
         self.wait(1)
-        m1 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("27, 38", font_size=20, color=WHITE)).move_to(l1.get_center() + UP*0.5)
-        m2 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("3, 43", font_size=20, color=WHITE)).move_to(l2.get_center() + UP*0.5)
-        m3 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("9, 82", font_size=20, color=WHITE)).move_to(r1.get_center() + UP*0.5)
-        m4 = VGroup(Rectangle(width=0.8, height=0.8, color=GREEN), Text("10", font_size=20, color=WHITE)).move_to(r2.get_center() + UP*0.5)
-        self.play(FadeOut(l1), FadeOut(l2), FadeOut(r1), FadeOut(r2), FadeIn(m1), FadeIn(m2), FadeIn(m3), FadeIn(m4), run_time=2)
+
+        # Alphabet row
+        alphabet_str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        alpha_group = VGroup()
+        for char in alphabet_str:
+            alpha_group.add(Text(char, font_size=20))
+        alpha_group.arrange(RIGHT, buff=0.2)
+        alpha_group.next_to(cipher_text, DOWN, buff=1.5)
+
+        # Scale alphabet to fit screen
+        alpha_group.scale(0.8)
+        self.play(Create(alpha_group))
+        self.wait(1)
+
+        # Process first letter 'K'
+        target_k = alpha_group[10] # K is index 10
+        box_k = SurroundingRectangle(target_k, color=RED)
+        self.play(Create(box_k))
+        self.wait(1)
+
+        # Arrow moving back 3
+        target_h = alpha_group[7] # H is index 7
+        arrow = Arrow(start=target_k.get_center(), end=target_h.get_center(), color=YELLOW)
+        self.play(Create(arrow))
+
+        box_h = SurroundingRectangle(target_h, color=GREEN)
+        self.play(Create(box_h))
+
+        res_text = Text("K -> H", font_size=32)
+        res_text.next_to(alpha_group, DOWN, buff=1)
+        self.play(Write(res_text))
         self.wait(2)
-        m_left = VGroup(Rectangle(width=3.2, height=0.8, color=PURPLE), Text("3, 27, 38, 43", font_size=20, color=WHITE)).move_to(LEFT*2 + DOWN*1)
-        m_right = VGroup(Rectangle(width=3.2, height=0.8, color=PURPLE), Text("9, 10, 82", font_size=20, color=WHITE)).move_to(RIGHT*2 + DOWN*1)
-        self.play(ReplacementTransform(VGroup(m1, m2), m_left), ReplacementTransform(VGroup(m3, m4), m_right), run_time=2)
+
+        # Clear for summary
+        self.play(FadeOut(*self.mobjects))
+
+        # --- SECTION 4: Final Summary ---
+        summary_title = Text("Summary", font_size=40)
+        summary_title.to_edge(UP)
+        self.play(Write(summary_title))
+
+        s1 = Text("Identify the Shift Key", font_size=28)
+        s2 = Text("Move letters back by that amount", font_size=28)
+        s3 = Text("Wrap around from A back to Z", font_size=28)
+
+        summary_group = VGroup(s1, s2, s3).arrange(DOWN, aligned_edge=LEFT, buff=0.6)
+        summary_group.move_to(ORIGIN)
+
+        self.play(FadeIn(s1))
+        self.wait(1)
+        self.play(FadeIn(s2))
+        self.wait(1)
+        self.play(FadeIn(s3))
+        self.wait(3)
+
+        self.play(FadeOut(*self.mobjects))
+
+        final_msg = Text("Decoded!", font_size=48, color=GREEN)
+        self.play(Write(final_msg))
         self.wait(2)
-        final = VGroup(Rectangle(width=6.4, height=0.8, color=BLUE), Text("3, 9, 10, 27, 38, 43, 82", font_size=20, color=WHITE)).move_to(DOWN*1)
-        self.play(ReplacementTransform(VGroup(m_left, m_right), final), run_time=2)
-        self.wait(2)
-        complexity = Text("Time Complexity: O(n log n)", font_size=30, color=RED)
-        complexity.to_edge(DOWN*2)
-        self.play(Write(complexity), run_time=1)

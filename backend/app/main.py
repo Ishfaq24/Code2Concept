@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from app.services.llm_service import get_llm_service
+from app.utils.clean_code import clean_code
 
 app = FastAPI()
 
@@ -53,9 +54,10 @@ async def generate_video(request: GenerateRequest):
         print("📝 Step 1: Generating Manim code...")
         llm_service = get_llm_service()
         manim_code = llm_service.generate_manim_video_code(topic)
-        
-        # STEP 2: Prepare and save code
-        print("💾 Step 2: Saving code to file...")
+
+        # STEP 2: Clean, prepare and save code
+        print("🧹 Step 2: Cleaning and saving code to file...")
+        manim_code = clean_code(manim_code)
         os.makedirs("generated", exist_ok=True)
         
         # Ensure import is first
@@ -81,11 +83,22 @@ async def generate_video(request: GenerateRequest):
         
         # STEP 3: Render video (higher quality)
         print("🎬 Step 3: Rendering video in high quality (this may take a few minutes)...")
+        # NOTE: With the Click-based Manim CLI, options must come
+        # *before* the first non-option argument (the script path).
+        # If flags like -pqh or --frame_rate are placed after the
+        # script path, Manim treats them as scene names and Click
+        # raises "no such option" errors, causing rendering to fail.
         result = subprocess.run(
-            ["manim", "generated/scene.py", "DemoScene", "-pqh", "--frame_rate=30"],
+            [
+                "manim",
+                "-pqh",              # preview, high quality
+                "--frame_rate=30",   # 30 FPS so path is 1080p30
+                "generated/scene.py",
+                "DemoScene",
+            ],
             capture_output=True,
             text=True,
-            timeout=600
+            timeout=600,
         )
         
         if result.returncode == 0:

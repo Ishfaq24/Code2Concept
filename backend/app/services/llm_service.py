@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -7,197 +8,202 @@ load_dotenv()
 
 
 class LLMServiceManager:
-    """Generates complete Manim code with embedded script in one call"""
-    
+    """Generates high-quality Manim animation code with visual storytelling"""
+
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "").strip()
         self.base_url = "https://integrate.api.nvidia.com/v1"
         self.model = "google/gemma-4-31b-it"
-        
+
         if not self.api_key:
             raise ValueError("❌ OPENAI_API_KEY not found")
-        
+
         self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
-        print(f"✅ LLM Service initialized")
+        print("✅ LLM Service initialized")
 
     def generate_manim_video_code(self, topic: str) -> str:
-        """Generate COMPLETE Manim code in ONE call - no separate steps"""
-        
-        prompt = f"""Generate COMPLETE Manim animation code for: {topic}
+        """Generate COMPLETE Manim code with strong visual storytelling"""
 
-CRITICAL RULES - FOLLOW EXACTLY:
+        prompt = f"""
+Generate COMPLETE Manim animation code for: {topic}
+
+CRITICAL SETUP RULES:
 1. Start with: from manim import *
 2. Class MUST be named: class DemoScene(Scene):
 3. Method MUST be named: def construct(self):
-4. Every single line MUST be complete on ONE line - NO line breaks in function calls
-5. Use only colors: BLUE, RED, GREEN, YELLOW, PURPLE, ORANGE, WHITE, GREY_B
-6. NO undefined variables
-7. NO special characters that break Python
-8. Return ONLY executable code - NO markdown, NO explanations, NO comments
-9. Make animations educational about {topic}
-10. Total duration should be around 2 minutes
+4. Return ONLY executable Python code (NO markdown, NO explanations, NO comments)
+5. Code MUST run without errors. NO undefined variables.
+6. When highlighting with SurroundingRectangle, first assign it to a variable 
+   (e.g. box = SurroundingRectangle(target, color=YELLOW)) and then call self.play(Create(box)).
 
-Example format (FOLLOW THIS EXACTLY):
-from manim import *
+LAYOUT & POSITIONING (HOW TO AVOID OVERLAPPING & OUT-OF-BOUNDS):
+1. NEVER leave elements at the default center origin if multiple elements exist. 
+2. STRICT RELATIVE POSITIONING: Always position new elements relative to existing ones using `.next_to(previous_element, DOWN, buff=0.5)`.
+3. PREVENT OUT OF BOUNDS: Maximum `font_size` for Titles is 40. Maximum `font_size` for body text is 28.
+4. SHORT TEXT ONLY: Never write long paragraphs. Break long sentences into multiple small Text objects or use VGroup to stack short sentences.
+5. VGROUP ARRANGEMENT: If showing a list, put them in a `VGroup` and use `group.arrange(DOWN, aligned_edge=LEFT, buff=0.4)`.
 
-class DemoScene(Scene):
-    def construct(self):
-        self.camera.background_color = "#0a0a0a"
-        title = Text("Binary Search", font_size=40, color=BLUE)
-        title.to_edge(UP)
-        self.play(Write(title), run_time=1.5)
-        self.wait(0.5)
-        line = Line(LEFT*2.5, RIGHT*2.5, color=BLUE, stroke_width=2)
-        line.next_to(title, DOWN*0.3)
-        self.play(Create(line), run_time=0.8)
-        self.wait(0.5)
-        concept = Text("Efficiently search sorted arrays", font_size=18, color=GREY_B)
-        concept.next_to(line, DOWN*0.8)
-        self.play(FadeIn(concept), run_time=0.8)
-        self.wait(1)
-        step1 = Text("Step 1: Start with sorted data", font_size=16, color=RED)
-        step1.next_to(concept, DOWN*1.5)
-        self.play(FadeIn(step1), run_time=0.8)
-        self.wait(1)
-        step2 = Text("Step 2: Pick middle element", font_size=16, color=BLUE)
-        step2.next_to(step1, DOWN*0.8)
-        self.play(FadeIn(step2), run_time=0.8)
-        self.wait(1)
-        step3 = Text("Step 3: Eliminate half the data", font_size=16, color=GREEN)
-        step3.next_to(step2, DOWN*0.8)
-        self.play(FadeIn(step3), run_time=0.8)
-        self.wait(1)
-        step4 = Text("Step 4: Repeat until found", font_size=16, color=YELLOW)
-        step4.next_to(step3, DOWN*0.8)
-        self.play(FadeIn(step4), run_time=0.8)
-        self.wait(2)
-        self.play(FadeOut(title), FadeOut(line), FadeOut(concept), FadeOut(step1), FadeOut(step2), FadeOut(step3), FadeOut(step4), run_time=1.5)
-        self.wait(0.5)
+SCENE MANAGEMENT & ORDERED RENDERING:
+1. CLEAR THE SCREEN: To prevent overcrowding and overlaps, you MUST clear the screen between major concepts using: `self.play(FadeOut(*self.mobjects))`
+2. STRICT SEQUENCE: Animate step-by-step. 
+   - Define Element A -> Position it -> self.play(Write(A)) -> self.wait(1)
+   - Define Element B -> Position relative to A -> self.play(FadeIn(B)) -> self.wait(1)
+3. Do not define all elements at the top. Define, position, and animate them chronologically.
 
-Now generate complete working code for teaching {topic}:"""
-        
+VIDEO QUALITY & STORYTELLING:
+1. STRUCTURE: Title Introduction -> Clear Screen -> Visual Breakdown -> Clear Screen -> Final Summary.
+2. VISUALS: Use arrows (`Arrow`), boxes (`SurroundingRectangle`), and shapes (`Circle`, `Rectangle`) to illustrate concepts rather than just text.
+3. PACING: Always include `self.wait(1)` or `self.wait(2)` after every animation.
+
+Now generate clean, sequentially ordered, properly spaced animation code for: {topic}
+"""
+
         try:
             print(f"🎬 Generating Manim video code for: {topic}")
-            
+
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.6,
-                max_tokens=1500
+                temperature=0.7,
+                max_tokens=2000
             )
-            
+
             code = response.choices[0].message.content.strip()
-            
-            print("\n" + "="*80)
+
+            print("\n" + "=" * 80)
             print("📝 RAW CODE FROM API:")
-            print("="*80)
+            print("=" * 80)
             print(code[:800])
             print("\n..." if len(code) > 800 else "")
-            print("="*80 + "\n")
-            
-            # Clean markdown
-            if code.startswith("```python"):
-                code = code[9:]
-            elif code.startswith("```"):
-                code = code[3:]
-            if code.endswith("```"):
-                code = code[:-3]
-            
-            code = code.strip()
-            
-            # ENSURE IMPORT IS FIRST
-            lines = code.split('\n')
-            import_line = None
-            other_lines = []
-            
-            for line in lines:
-                if "from manim import" in line:
-                    import_line = line
-                else:
-                    other_lines.append(line)
-            
-            if not import_line:
-                import_line = "from manim import *"
-            
-            code = import_line + "\n" + "\n".join(other_lines)
-            
-            # ENSURE CLASS NAME IS DemoScene
-            import re
-            code = re.sub(r'class \w+Scene\(Scene\):', 'class DemoScene(Scene):', code)
-            
-            # JOIN INCOMPLETE LINES
-            lines = code.split('\n')
-            fixed = []
-            i = 0
-            while i < len(lines):
-                line = lines[i].rstrip()
-                while i < len(lines) - 1 and (line.endswith(',') or line.endswith('(')):
-                    i += 1
-                    line = line + ' ' + lines[i].lstrip()
-                fixed.append(line)
-                i += 1
-            
-            code = '\n'.join(fixed)
-            
-            print("="*80)
-            print("✅ CLEANED CODE (first 20 lines):")
-            print("="*80)
-            print_lines = code.split('\n')[:20]
-            for i, line in enumerate(print_lines, 1):
+            print("=" * 80 + "\n")
+
+            # 🔧 CLEAN MARKDOWN
+            code = self._clean_markdown(code)
+
+            # 🔧 ENSURE IMPORT
+            code = self._ensure_import(code)
+
+            # 🔧 ENSURE CLASS NAME
+            code = self._fix_class_name(code)
+
+            # 🔧 FINAL SANITY CLEAN
+            code = self._final_cleanup(code)
+
+            print("=" * 80)
+            print("✅ CLEANED CODE (first 25 lines):")
+            print("=" * 80)
+            for i, line in enumerate(code.split("\n")[:25], 1):
                 print(f"{i}: {line}")
-            print("="*80 + "\n")
-            
+            print("=" * 80 + "\n")
+
             return code
-                
+
         except Exception as e:
             print(f"❌ Error: {e}")
             return self._fallback_code(topic)
 
+    # ---------------- CLEANING METHODS ---------------- #
+
+    def _clean_markdown(self, code: str) -> str:
+        if code.startswith("```python"):
+            code = code[9:]
+        elif code.startswith("```"):
+            code = code[3:]
+        if code.endswith("```"):
+            code = code[:-3]
+        return code.strip()
+
+    def _ensure_import(self, code: str) -> str:
+        lines = code.split("\n")
+        import_line = None
+        other_lines = []
+
+        for line in lines:
+            if "from manim import" in line:
+                import_line = line
+            else:
+                other_lines.append(line)
+
+        if not import_line:
+            import_line = "from manim import *"
+
+        return import_line + "\n" + "\n".join(other_lines)
+
+    def _fix_class_name(self, code: str) -> str:
+        return re.sub(r'class\s+\w+\(Scene\):', 'class DemoScene(Scene):', code)
+
+    def _final_cleanup(self, code: str) -> str:
+        # Remove trailing spaces and weird artifacts
+        lines = [line.rstrip() for line in code.split("\n")]
+
+        # Remove empty excessive lines
+        cleaned = []
+        prev_empty = False
+        for line in lines:
+            if line == "":
+                if not prev_empty:
+                    cleaned.append(line)
+                prev_empty = True
+            else:
+                cleaned.append(line)
+                prev_empty = False
+
+        return "\n".join(cleaned)
+
+    # ---------------- FALLBACK ---------------- #
+
     def _fallback_code(self, topic: str) -> str:
-        """Fallback code - GUARANTEED TO WORK"""
         return f"""from manim import *
 
 class DemoScene(Scene):
     def construct(self):
         self.camera.background_color = "#0a0a0a"
+
+        # 1. Title Introduction
         title = Text('{topic}', font_size=40, color=BLUE)
         title.to_edge(UP)
         self.play(Write(title), run_time=1.5)
         self.wait(0.5)
-        line = Line(LEFT*2.5, RIGHT*2.5, color=BLUE, stroke_width=2)
+
+        line = Line(LEFT*2.5, RIGHT*2.5, color=BLUE)
         line.next_to(title, DOWN*0.3)
-        self.play(Create(line), run_time=0.8)
+        self.play(Create(line))
         self.wait(0.5)
-        concept = Text('Understanding the fundamentals', font_size=18, color=GREY_B)
-        concept.next_to(line, DOWN*0.8)
-        self.play(FadeIn(concept), run_time=0.8)
+
+        # 2. Concept Breakdown
+        concept = Text('Understanding the core idea', font_size=24, color=GREY_B)
+        concept.next_to(line, DOWN, buff=0.5)
+        self.play(FadeIn(concept))
         self.wait(1)
-        step1 = Text('Step 1: Learn the basics', font_size=16, color=RED)
-        step1.next_to(concept, DOWN*1.5)
-        self.play(FadeIn(step1), run_time=0.8)
+
+        box = SurroundingRectangle(concept, color=YELLOW)
+        self.play(Create(box))
         self.wait(1)
-        step2 = Text('Step 2: Understand applications', font_size=16, color=BLUE)
-        step2.next_to(step1, DOWN*0.8)
-        self.play(FadeIn(step2), run_time=0.8)
-        self.wait(1)
-        step3 = Text('Step 3: Practice implementation', font_size=16, color=GREEN)
-        step3.next_to(step2, DOWN*0.8)
-        self.play(FadeIn(step3), run_time=0.8)
-        self.wait(1)
-        step4 = Text('Step 4: Master the concept', font_size=16, color=YELLOW)
-        step4.next_to(step3, DOWN*0.8)
-        self.play(FadeIn(step4), run_time=0.8)
+
+        # 3. Stacked List using VGroup and arrange()
+        step1 = Text('Step 1: Basics', font_size=24, color=RED)
+        step2 = Text('Step 2: Process', font_size=24, color=BLUE)
+        step3 = Text('Step 3: Result', font_size=24, color=GREEN)
+
+        group = VGroup(step1, step2, step3).arrange(DOWN, aligned_edge=LEFT, buff=0.5)
+        group.next_to(concept, DOWN, buff=1.0)
+        
+        self.play(FadeIn(group))
         self.wait(2)
-        self.play(FadeOut(title), FadeOut(line), FadeOut(concept), FadeOut(step1), FadeOut(step2), FadeOut(step3), FadeOut(step4), run_time=1.5)
+
+        # 4. Clear Screen before next scene
+        self.play(FadeOut(*self.mobjects))
         self.wait(0.5)
 """
 
+    # ---------------- LEGACY ---------------- #
+
     def generate_teaching_script(self, topic: str) -> dict:
-        """Deprecated - kept for compatibility"""
         return {"title": topic.title(), "concept": topic}
 
 
 _llm_service = None
+
 
 def get_llm_service():
     global _llm_service
@@ -205,9 +211,10 @@ def get_llm_service():
         _llm_service = LLMServiceManager()
     return _llm_service
 
+
 def generate_teaching_script(topic: str) -> dict:
     return get_llm_service().generate_teaching_script(topic)
 
+
 def generate_manim_from_script(script: dict) -> str:
-    """For backward compatibility"""
     return get_llm_service().generate_manim_video_code(script.get("title", "Topic"))
