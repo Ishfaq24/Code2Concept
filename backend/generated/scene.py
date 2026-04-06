@@ -1,50 +1,59 @@
 from manim import *
-
 class DemoScene(Scene):
     def construct(self):
-        title = Text("Introduction to Machine Learning", color=CYAN, font_size=48)
-        definition = Text(
-            "A subset of AI that enables computers to learn patterns\nfrom data and make predictions without explicit programming.",
-            font_size=28,
-            line_spacing=1.5,
-            color=WHITE
-        ).next_to(title, DOWN, buff=0.5)
-
-        self.play(Write(title))
-        self.play(FadeIn(definition, shift=UP))
-        self.wait(3)
-        self.play(FadeOut(title), FadeOut(definition))
-
-        steps_data = [
-            ("Step 1: Data Collection", "Gather diverse, high-quality datasets\n(Historical records, sensor readings)", CYAN, Write),
-            ("Step 2: Data Preprocessing", "Clean data, handle missing values,\nand normalize scales to remove noise", YELLOW, FadeIn),
-            ("Step 3: Choosing the Model", "Select algorithm: Supervised (labeled)\nor Unsupervised (clustering)", GREEN, GrowFromCenter),
-            ("Step 4: Training the Model", "Adjust internal weights to minimize\nerror between prediction and outcome", RED, Write),
-            ("Step 5: Evaluation & Testing", "Use a separate test set to measure\naccuracy and generalizability", BLUE, FadeIn),
-            ("Step 6: Hyperparameter Tuning", "Fine-tune settings like learning rate\nto prevent over/underfitting", PURPLE, GrowFromCenter),
-            ("Step 7: Deployment & Monitoring", "Integrate into real-world apps and\nupdate with new incoming data", ORANGE, Write),
-        ]
-
-        for i, (s_title, s_desc, s_color, s_anim) in enumerate(steps_data):
-            step_title = Text(s_title, color=s_color, font_size=36).shift(UP * 1)
-            step_desc = Text(s_desc, font_size=24, color=WHITE).next_to(step_title, DOWN, buff=0.5)
-            
-            group = VGroup(step_title, step_desc)
-            
-            if s_anim == Write:
-                self.play(Write(step_title))
-                self.play(Write(step_desc))
-            elif s_anim == FadeIn:
-                self.play(FadeIn(group, shift=RIGHT))
-            elif s_anim == GrowFromCenter:
-                self.play(GrowFromCenter(step_title))
-                self.play(FadeIn(step_desc))
-
-            self.wait(3)
-            self.play(FadeOut(group, shift=LEFT))
-
-        final_text = Text("Machine Learning Pipeline Complete", color=CYAN, font_size=42)
-        self.play(Write(final_text))
-        self.play(Indicate(final_text))
+        self.camera.background_color = "#0a0a0a"
+        title = Text("Merge Sort Algorithm", font_size=48, color=BLUE)
+        title.to_edge(UP)
+        self.play(Write(title), run_time=1.5)
+        self.wait(1)
+        desc = Text("A Divide and Conquer Sorting Algorithm", font_size=24, color=GREY_B)
+        desc.next_to(title, DOWN*0.5)
+        self.play(FadeIn(desc), run_time=1)
         self.wait(2)
-        self.play(FadeOut(final_text))
+        self.play(FadeOut(desc), run_time=1)
+        array_vals = [38, 27, 43, 3, 9, 82, 10]
+        rects = VGroup(*[Rectangle(width=0.8, height=0.8, color=WHITE) for _ in array_vals])
+        labels = VGroup(*[Text(str(v), font_size=20, color=WHITE) for v in array_vals])
+        for i in range(len(rects)):
+            labels[i].move_to(rects[i].get_center())
+        array_group = VGroup(rects, labels).center()
+        self.play(Create(rects), Write(labels), run_time=2)
+        self.wait(1)
+        step1 = Text("Step 1: Divide", font_size=30, color=YELLOW)
+        step1.to_edge(LEFT).shift(UP*2)
+        self.play(Write(step1), run_time=1)
+        self.wait(1)
+        left_half = VGroup(rects[0:4], labels[0:4]).shift(LEFT*2 + DOWN*1)
+        right_half = VGroup(rects[4:7], labels[4:7]).shift(RIGHT*2 + DOWN*1)
+        self.play(ReplacementTransform(array_group, VGroup(left_half, right_half)), run_time=2)
+        self.wait(2)
+        step2 = Text("Step 2: Conquer (Recursive Split)", font_size=30, color=ORANGE)
+        step2.next_to(step1, DOWN*0.8)
+        self.play(Write(step2), run_time=1)
+        self.wait(1)
+        l1 = VGroup(rects[0:2], labels[0:2]).shift(LEFT*4 + DOWN*2)
+        l2 = VGroup(rects[2:4], labels[2:4]).shift(LEFT*1 + DOWN*2)
+        r1 = VGroup(rects[4:6], labels[4:6]).shift(RIGHT*1 + DOWN*2)
+        r2 = VGroup(rects[6:7], labels[6:7]).shift(RIGHT*4 + DOWN*2)
+        self.play(ReplacementTransform(left_half, VGroup(l1, l2)), ReplacementTransform(right_half, VGroup(r1, r2)), run_time=2)
+        self.wait(2)
+        step3 = Text("Step 3: Merge and Sort", font_size=30, color=GREEN)
+        step3.next_to(step2, DOWN*0.8)
+        self.play(Write(step3), run_time=1)
+        self.wait(1)
+        m1 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("27, 38", font_size=20, color=WHITE)).move_to(l1.get_center() + UP*0.5)
+        m2 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("3, 43", font_size=20, color=WHITE)).move_to(l2.get_center() + UP*0.5)
+        m3 = VGroup(Rectangle(width=1.6, height=0.8, color=GREEN), Text("9, 82", font_size=20, color=WHITE)).move_to(r1.get_center() + UP*0.5)
+        m4 = VGroup(Rectangle(width=0.8, height=0.8, color=GREEN), Text("10", font_size=20, color=WHITE)).move_to(r2.get_center() + UP*0.5)
+        self.play(FadeOut(l1), FadeOut(l2), FadeOut(r1), FadeOut(r2), FadeIn(m1), FadeIn(m2), FadeIn(m3), FadeIn(m4), run_time=2)
+        self.wait(2)
+        m_left = VGroup(Rectangle(width=3.2, height=0.8, color=PURPLE), Text("3, 27, 38, 43", font_size=20, color=WHITE)).move_to(LEFT*2 + DOWN*1)
+        m_right = VGroup(Rectangle(width=3.2, height=0.8, color=PURPLE), Text("9, 10, 82", font_size=20, color=WHITE)).move_to(RIGHT*2 + DOWN*1)
+        self.play(ReplacementTransform(VGroup(m1, m2), m_left), ReplacementTransform(VGroup(m3, m4), m_right), run_time=2)
+        self.wait(2)
+        final = VGroup(Rectangle(width=6.4, height=0.8, color=BLUE), Text("3, 9, 10, 27, 38, 43, 82", font_size=20, color=WHITE)).move_to(DOWN*1)
+        self.play(ReplacementTransform(VGroup(m_left, m_right), final), run_time=2)
+        self.wait(2)
+        complexity = Text("Time Complexity: O(n log n)", font_size=30, color=RED)
+        complexity.to_edge(DOWN*2)
+        self.play(Write(complexity), run_time=1)
