@@ -2,87 +2,91 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        title = Text("Linear Search Algorithm", font_size=40)
+        # --- SECTION 1: Introduction ---
+        title = Text("What is Machine Learning?", font_size=40)
         title.to_edge(UP)
         self.play(Write(title))
         self.wait(1)
 
-        desc = Text("Search for a target value\nin an unsorted list", font_size=28)
-        desc.next_to(title, DOWN, buff=0.5)
-        self.play(Write(desc))
+        subtitle = Text("Teaching computers to learn from data", font_size=28)
+        subtitle.next_to(title, DOWN, buff=0.5)
+        self.play(FadeIn(subtitle))
         self.wait(2)
 
-        self.play(FadeOut(title), FadeOut(desc))
+        self.play(FadeOut(title), FadeOut(subtitle))
 
-        list_vals = [10, 45, 2, 8, 33]
-        target_val = 8
+        # --- SECTION 2: Traditional Programming vs ML ---
+        label_trad = Text("Traditional Programming", font_size=28)
+        label_trad.to_edge(UP)
+        self.play(Write(label_trad))
 
-        boxes = VGroup()
-        labels = VGroup()
+        trad_data = Text("Data", font_size=24)
+        trad_data.next_to(label_trad, DOWN, buff=0.7).shift(LEFT * 3)
 
-        for val in list_vals:
-            rect = Rectangle(width=1, height=1)
-            lbl = Text(str(val), font_size=28)
-            lbl.move_to(rect.get_center())
-            boxes.add(rect)
-            labels.add(lbl)
+        trad_rules = Text("Rules", font_size=24)
+        trad_rules.next_to(trad_data, RIGHT, buff=1.5)
 
-        boxes.arrange(RIGHT, buff=0.2)
-        labels.arrange(RIGHT, buff=0.2)
+        trad_ans = Text("Answer", font_size=24)
+        trad_ans.next_to(trad_rules, RIGHT, buff=1.5)
 
-        list_group = VGroup(boxes, labels).center()
+        arrow1 = Arrow(trad_data.get_right(), trad_rules.get_left())
+        arrow2 = Arrow(trad_rules.get_right(), trad_ans.get_left())
 
-        target_text = Text(f"Target: {target_val}", font_size=28, color=YELLOW)
-        target_text.next_to(list_group, UP, buff=1)
-
-        self.play(Create(boxes), Write(labels))
-        self.play(Write(target_text))
-        self.wait(1)
-
-        pointer = Arrow(start=UP, end=DOWN, color=RED).scale(0.7)
-        pointer.next_to(boxes[0], UP, buff=0.1)
-
-        self.play(Create(pointer))
-        self.wait(0.5)
-
-        for i in range(len(list_vals)):
-            box_highlight = SurroundingRectangle(labels[i], color=YELLOW)
-            self.play(
-                pointer.animate.next_to(boxes[i], UP, buff=0.1),
-                Create(box_highlight)
-            )
-
-            if list_vals[i] == target_val:
-                found_text = Text("Found it!", font_size=28, color=GREEN)
-                found_text.next_to(list_group, DOWN, buff=1)
-                self.play(Write(found_text))
-                self.play(box_highlight.animate.set_color(GREEN))
-                self.wait(2)
-                self.play(FadeOut(found_text))
-                break
-            else:
-                self.wait(0.5)
-                self.play(FadeOut(box_highlight))
-
+        self.play(FadeIn(trad_data), FadeIn(trad_rules), FadeIn(trad_ans))
+        self.play(GrowArrow(arrow1), GrowArrow(arrow2))
         self.wait(2)
+
         self.play(FadeOut(*self.mobjects))
 
-        summary_title = Text("Complexity", font_size=40)
-        summary_title.to_edge(UP)
-        self.play(Write(summary_title))
+        # --- SECTION 3: How ML Works ---
+        label_ml = Text("Machine Learning", font_size=28)
+        label_ml.to_edge(UP)
+        self.play(Write(label_ml))
+
+        ml_data = Text("Data", font_size=24)
+        ml_data.next_to(label_ml, DOWN, buff=0.7).shift(LEFT * 3)
+
+        ml_ans = Text("Answers", font_size=24)
+        ml_ans.next_to(ml_data, RIGHT, buff=1.5)
+
+        ml_model = Text("Model (The Rules)", font_size=24)
+        ml_model.next_to(ml_data, DOWN, buff=1.5)
+
+        arrow_d_a = Arrow(ml_data.get_right(), ml_ans.get_left())
+        arrow_d_m = Arrow(ml_data.get_bottom(), ml_model.get_top())
+        arrow_a_m = Arrow(ml_ans.get_bottom(), ml_model.get_top())
+
+        self.play(FadeIn(ml_data), FadeIn(ml_ans))
+        self.play(GrowArrow(arrow_d_a))
         self.wait(1)
 
-        time_comp = Text("Time Complexity: O(n)", font_size=28)
-        time_comp.next_to(summary_title, DOWN, buff=0.8)
-        self.play(Write(time_comp))
-        self.wait(1)
+        self.play(FadeIn(ml_model))
+        self.play(GrowArrow(arrow_d_m), GrowArrow(arrow_a_m))
 
-        space_comp = Text("Space Complexity: O(1)", font_size=28)
-        space_comp.next_to(time_comp, DOWN, buff=0.5)
-        self.play(Write(space_comp))
+        box = SurroundingRectangle(ml_model, color=YELLOW)
+        self.play(Create(box))
         self.wait(2)
 
-        final_note = Text("Checks every element sequentially", font_size=28, color=GRAY)
-        final_note.next_to(space_comp, DOWN, buff=1)
-        self.play(FadeIn(final_note))
+        self.play(FadeOut(*self.mobjects))
+
+        # --- SECTION 4: Final Summary ---
+        summary_title = Text("The Core Idea", font_size=40)
+        summary_title.to_edge(UP)
+        self.play(Write(summary_title))
+
+        line1 = Text("Input Data + Target Answers", font_size=28)
+        line2 = Text("→ Algorithm finds the pattern", font_size=28)
+        line3 = Text("→ Model predicts new data", font_size=28)
+
+        summary_group = VGroup(line1, line2, line3)
+        summary_group.arrange(DOWN, aligned_edge=LEFT, buff=0.5)
+        summary_group.next_to(summary_title, DOWN, buff=1.0)
+
+        self.play(Write(line1))
+        self.wait(1)
+        self.play(Write(line2))
+        self.wait(1)
+        self.play(Write(line3))
         self.wait(3)
+
+        self.play(FadeOut(*self.mobjects))
