@@ -102,6 +102,56 @@ Now generate clean, sequentially ordered, properly spaced animation code for: {t
             print(f"❌ Error: {e}")
             return self._fallback_code(topic)
 
+    def generate_narration_text(self, topic: str) -> str:
+        """Generate a spoken narration script for the given topic.
+
+        The script is plain text, suitable to be read aloud by TTS.
+        """
+
+        prompt = f"""
+You are an expert educator and voice-over writer.
+
+Write a clear, engaging narration script for an educational video
+about the topic: "{topic}".
+
+Constraints:
+- Plain text only (no markdown, no bullet points, no headings).
+- 6-12 short sentences, conversational and student-friendly.
+- Explain step by step, as if speaking in a video.
+- Do not include scene directions or camera cues.
+- Do not mention that you are an AI.
+"""
+
+        try:
+            print(f"🗣️ Generating narration script for: {topic}")
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=700,
+            )
+
+            narration = response.choices[0].message.content.strip()
+
+            # Remove any stray markdown fences just in case
+            if narration.startswith("```"):
+                narration = narration.split("\n", 1)[-1]
+            if narration.endswith("```"):
+                narration = narration.rsplit("\n", 1)[0]
+
+            print("✅ Narration script generated")
+            return narration
+
+        except Exception as e:
+            print(f"❌ Error generating narration script: {e}")
+            # Fallback to a simple generic narration
+            return (
+                f"In this lesson, we will quickly explore the core ideas of {topic}. "
+                "We will start with the basic intuition, then walk through a simple example, "
+                "and finally connect the concept back to real-world usage."
+            )
+
     # ---------------- CLEANING METHODS ---------------- #
 
     def _clean_markdown(self, code: str) -> str:
@@ -199,7 +249,18 @@ class DemoScene(Scene):
     # ---------------- LEGACY ---------------- #
 
     def generate_teaching_script(self, topic: str) -> dict:
-        return {"title": topic.title(), "concept": topic}
+        """Generate a lightweight teaching script for legacy callers.
+
+        For now this wraps the narration text in a simple structure
+        that older parts of the code expect.
+        """
+
+        narration = self.generate_narration_text(topic)
+        return {
+            "title": topic.title(),
+            "concept": topic,
+            "narration": narration,
+        }
 
 
 _llm_service = None
@@ -218,3 +279,8 @@ def generate_teaching_script(topic: str) -> dict:
 
 def generate_manim_from_script(script: dict) -> str:
     return get_llm_service().generate_manim_video_code(script.get("title", "Topic"))
+
+
+def generate_narration_text(topic: str) -> str:
+    """Convenience wrapper for narration generation."""
+    return get_llm_service().generate_narration_text(topic)
