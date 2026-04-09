@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from app.services.llm_service import get_llm_service
+from app.services.voice_service import generate_narration_audio, merge_audio_with_video
 from app.utils.clean_code import clean_code
 
 app = FastAPI()
@@ -55,6 +56,10 @@ async def generate_video(request: GenerateRequest):
         llm_service = get_llm_service()
         manim_code = llm_service.generate_manim_video_code(topic)
 
+        # Also generate narration script for voice-over
+        print("🗣️ Generating narration script...")
+        narration_text = llm_service.generate_narration_text(topic)
+
         # STEP 2: Clean, prepare and save code
         print("🧹 Step 2: Cleaning and saving code to file...")
         manim_code = clean_code(manim_code)
@@ -103,11 +108,36 @@ async def generate_video(request: GenerateRequest):
         
         if result.returncode == 0:
             print("✅ Video rendered successfully!\n")
+
+            base_video_path = "media/videos/scene/1080p30/DemoScene.mp4"
+            voiced_video_path = None
+            voice_enabled = False
+
+            # STEP 4: Generate narration audio and merge with video
+            try:
+                print("🎙️ Generating narration audio...")
+                audio_path = generate_narration_audio(narration_text)
+
+                print("🎧 Merging audio with video...")
+                merged_path = merge_audio_with_video(base_video_path, audio_path)
+
+                if merged_path:
+                    voiced_video_path = merged_path
+                    voice_enabled = True
+                else:
+                    print("⚠️ Falling back to silent video (merge failed)")
+            except Exception as ve:
+                print(f"⚠️ Voice generation failed, using silent video. Error: {ve}")
+
+            final_video_path = voiced_video_path or base_video_path
+
             return {
                 "status": "success",
                 "message": "Video generated successfully",
                 "topic": topic,
-                "video_path": "media/videos/scene/1080p30/DemoScene.mp4"
+                "video_path": final_video_path,
+                "voice_enabled": voice_enabled,
+                "narration_text": narration_text,
             }
         else:
             error_msg = result.stderr[:1000] if result.stderr else result.stdout[:1000]
@@ -134,6 +164,8 @@ async def get_video(t: str = None):
     try:
         # Prefer high quality if available, otherwise fall back
         candidates = [
+            # Prefer voiced version if available
+            "media/videos/scene/1080p30/DemoScene_voiced.mp4",
             "media/videos/scene/1080p30/DemoScene.mp4",
             "media/videos/scene/720p30/DemoScene.mp4",
             "media/videos/scene/480p15/DemoScene.mp4",
