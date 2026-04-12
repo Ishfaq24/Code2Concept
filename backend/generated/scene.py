@@ -2,87 +2,86 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        title = Text("Linear Search Algorithm", font_size=40)
-        title.to_edge(UP)
+        title = Text("Binary Search Algorithm", font_size=40)
         self.play(Write(title))
-        self.wait(1)
-
-        desc = Text("Search for a target value\nin an unsorted list", font_size=28)
-        desc.next_to(title, DOWN, buff=0.5)
-        self.play(Write(desc))
         self.wait(2)
+        self.play(FadeOut(title))
 
-        self.play(FadeOut(title), FadeOut(desc))
+        desc1 = Text("Efficiently find a value", font_size=28)
+        desc2 = Text("Requires a SORTED array", font_size=28)
+        desc_group = VGroup(desc1, desc2).arrange(DOWN, aligned_edge=LEFT, buff=0.5)
+        desc_group.move_to(ORIGIN)
 
-        list_vals = [10, 45, 2, 8, 33]
-        target_val = 8
-
-        boxes = VGroup()
-        labels = VGroup()
-
-        for val in list_vals:
-            rect = Rectangle(width=1, height=1)
-            lbl = Text(str(val), font_size=28)
-            lbl.move_to(rect.get_center())
-            boxes.add(rect)
-            labels.add(lbl)
-
-        boxes.arrange(RIGHT, buff=0.2)
-        labels.arrange(RIGHT, buff=0.2)
-
-        list_group = VGroup(boxes, labels).center()
-
-        target_text = Text(f"Target: {target_val}", font_size=28, color=YELLOW)
-        target_text.next_to(list_group, UP, buff=1)
-
-        self.play(Create(boxes), Write(labels))
-        self.play(Write(target_text))
+        self.play(Write(desc1))
         self.wait(1)
-
-        pointer = Arrow(start=UP, end=DOWN, color=RED).scale(0.7)
-        pointer.next_to(boxes[0], UP, buff=0.1)
-
-        self.play(Create(pointer))
-        self.wait(0.5)
-
-        for i in range(len(list_vals)):
-            box_highlight = SurroundingRectangle(labels[i], color=YELLOW)
-            self.play(
-                pointer.animate.next_to(boxes[i], UP, buff=0.1),
-                Create(box_highlight)
-            )
-
-            if list_vals[i] == target_val:
-                found_text = Text("Found it!", font_size=28, color=GREEN)
-                found_text.next_to(list_group, DOWN, buff=1)
-                self.play(Write(found_text))
-                self.play(box_highlight.animate.set_color(GREEN))
-                self.wait(2)
-                self.play(FadeOut(found_text))
-                break
-            else:
-                self.wait(0.5)
-                self.play(FadeOut(box_highlight))
-
+        self.play(Write(desc2))
         self.wait(2)
         self.play(FadeOut(*self.mobjects))
 
-        summary_title = Text("Complexity", font_size=40)
-        summary_title.to_edge(UP)
-        self.play(Write(summary_title))
+        array_vals = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        squares = VGroup(*[Square(side_length=0.8) for _ in array_vals])
+        squares.arrange(RIGHT, buff=0.1)
+
+        labels = VGroup(*[Text(str(v), font_size=24) for v in array_vals])
+        for i in range(len(labels)):
+            labels[i].move_to(squares[i].get_center())
+
+        array_group = VGroup(squares, labels).center()
+
+        target_text = Text("Target: 70", font_size=28).next_to(array_group, UP, buff=1)
+
+        self.play(Create(squares), Write(labels))
+        self.play(Write(target_text))
         self.wait(1)
 
-        time_comp = Text("Time Complexity: O(n)", font_size=28)
-        time_comp.next_to(summary_title, DOWN, buff=0.8)
-        self.play(Write(time_comp))
+        low_ptr = Arrow(start=UP, end=DOWN, color=BLUE).next_to(squares[0], DOWN)
+        low_label = Text("Low", font_size=20, color=BLUE).next_to(low_ptr, DOWN)
+
+        high_ptr = Arrow(start=UP, end=DOWN, color=RED).next_to(squares[-1], DOWN)
+        high_label = Text("High", font_size=20, color=RED).next_to(high_ptr, DOWN)
+
+        self.play(Create(low_ptr), Write(low_label))
+        self.play(Create(high_ptr), Write(high_label))
         self.wait(1)
 
-        space_comp = Text("Space Complexity: O(1)", font_size=28)
-        space_comp.next_to(time_comp, DOWN, buff=0.5)
-        self.play(Write(space_comp))
+        mid_idx = 4
+        mid_box = SurroundingRectangle(squares[mid_idx], color=YELLOW)
+        mid_label = Text("Mid", font_size=20, color=YELLOW).next_to(mid_box, UP)
+
+        self.play(Create(mid_box), Write(mid_label))
+        self.wait(1)
+
+        compare_text = Text("50 < 70: Search Right", font_size=28).next_to(array_group, DOWN, buff=1.5)
+        self.play(Write(compare_text))
         self.wait(2)
 
-        final_note = Text("Checks every element sequentially", font_size=28, color=GRAY)
-        final_note.next_to(space_comp, DOWN, buff=1)
-        self.play(FadeIn(final_note))
+        self.play(FadeOut(mid_box), FadeOut(mid_label), FadeOut(compare_text))
+        self.play(low_ptr.animate.next_to(squares[5], DOWN), low_label.animate.next_to(low_ptr, DOWN))
+        self.wait(1)
+
+        mid_idx_2 = 6
+        mid_box_2 = SurroundingRectangle(squares[mid_idx_2], color=YELLOW)
+        mid_label_2 = Text("Mid", font_size=20, color=YELLOW).next_to(mid_box_2, UP)
+
+        self.play(Create(mid_box_2), Write(mid_label_2))
+        self.wait(1)
+
+        found_text = Text("70 == 70: Found!", font_size=28, color=GREEN).next_to(array_group, DOWN, buff=1.5)
+        self.play(Write(found_text))
         self.wait(3)
+
+        self.play(FadeOut(*self.mobjects))
+
+        summary_title = Text("Complexity", font_size=40)
+        summary_title.move_to(UP * 2)
+
+        time_comp = Text("Time Complexity: O(log n)", font_size=28).next_to(summary_title, DOWN, buff=1)
+        space_comp = Text("Space Complexity: O(1)", font_size=28).next_to(time_comp, DOWN, buff=0.5)
+
+        self.play(Write(summary_title))
+        self.wait(1)
+        self.play(Write(time_comp))
+        self.wait(1)
+        self.play(Write(space_comp))
+        self.wait(3)
+        self.play(FadeOut(*self.mobjects))

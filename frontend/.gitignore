@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Vite cache
+.vite
+
+# Environment variables
+.env
+.env.*.local
+
+# Test coverage
+coverage
+
+# TypeScript build info
+*.tsbuildinfo
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +35,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+C:\projects\video-generation\frontend\node_modules
