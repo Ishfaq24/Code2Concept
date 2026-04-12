@@ -2,91 +2,86 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        # --- SECTION 1: Introduction ---
-        title = Text("What is Machine Learning?", font_size=40)
-        title.to_edge(UP)
+        title = Text("Binary Search Algorithm", font_size=40)
         self.play(Write(title))
+        self.wait(2)
+        self.play(FadeOut(title))
+
+        desc1 = Text("Efficiently find a value", font_size=28)
+        desc2 = Text("Requires a SORTED array", font_size=28)
+        desc_group = VGroup(desc1, desc2).arrange(DOWN, aligned_edge=LEFT, buff=0.5)
+        desc_group.move_to(ORIGIN)
+
+        self.play(Write(desc1))
         self.wait(1)
-
-        subtitle = Text("Teaching computers to learn from data", font_size=28)
-        subtitle.next_to(title, DOWN, buff=0.5)
-        self.play(FadeIn(subtitle))
+        self.play(Write(desc2))
         self.wait(2)
-
-        self.play(FadeOut(title), FadeOut(subtitle))
-
-        # --- SECTION 2: Traditional Programming vs ML ---
-        label_trad = Text("Traditional Programming", font_size=28)
-        label_trad.to_edge(UP)
-        self.play(Write(label_trad))
-
-        trad_data = Text("Data", font_size=24)
-        trad_data.next_to(label_trad, DOWN, buff=0.7).shift(LEFT * 3)
-
-        trad_rules = Text("Rules", font_size=24)
-        trad_rules.next_to(trad_data, RIGHT, buff=1.5)
-
-        trad_ans = Text("Answer", font_size=24)
-        trad_ans.next_to(trad_rules, RIGHT, buff=1.5)
-
-        arrow1 = Arrow(trad_data.get_right(), trad_rules.get_left())
-        arrow2 = Arrow(trad_rules.get_right(), trad_ans.get_left())
-
-        self.play(FadeIn(trad_data), FadeIn(trad_rules), FadeIn(trad_ans))
-        self.play(GrowArrow(arrow1), GrowArrow(arrow2))
-        self.wait(2)
-
         self.play(FadeOut(*self.mobjects))
 
-        # --- SECTION 3: How ML Works ---
-        label_ml = Text("Machine Learning", font_size=28)
-        label_ml.to_edge(UP)
-        self.play(Write(label_ml))
+        array_vals = [10, 20, 30, 40, 50, 60, 70, 80, 90]
+        squares = VGroup(*[Square(side_length=0.8) for _ in array_vals])
+        squares.arrange(RIGHT, buff=0.1)
 
-        ml_data = Text("Data", font_size=24)
-        ml_data.next_to(label_ml, DOWN, buff=0.7).shift(LEFT * 3)
+        labels = VGroup(*[Text(str(v), font_size=24) for v in array_vals])
+        for i in range(len(labels)):
+            labels[i].move_to(squares[i].get_center())
 
-        ml_ans = Text("Answers", font_size=24)
-        ml_ans.next_to(ml_data, RIGHT, buff=1.5)
+        array_group = VGroup(squares, labels).center()
 
-        ml_model = Text("Model (The Rules)", font_size=24)
-        ml_model.next_to(ml_data, DOWN, buff=1.5)
+        target_text = Text("Target: 70", font_size=28).next_to(array_group, UP, buff=1)
 
-        arrow_d_a = Arrow(ml_data.get_right(), ml_ans.get_left())
-        arrow_d_m = Arrow(ml_data.get_bottom(), ml_model.get_top())
-        arrow_a_m = Arrow(ml_ans.get_bottom(), ml_model.get_top())
-
-        self.play(FadeIn(ml_data), FadeIn(ml_ans))
-        self.play(GrowArrow(arrow_d_a))
+        self.play(Create(squares), Write(labels))
+        self.play(Write(target_text))
         self.wait(1)
 
-        self.play(FadeIn(ml_model))
-        self.play(GrowArrow(arrow_d_m), GrowArrow(arrow_a_m))
+        low_ptr = Arrow(start=UP, end=DOWN, color=BLUE).next_to(squares[0], DOWN)
+        low_label = Text("Low", font_size=20, color=BLUE).next_to(low_ptr, DOWN)
 
-        box = SurroundingRectangle(ml_model, color=YELLOW)
-        self.play(Create(box))
+        high_ptr = Arrow(start=UP, end=DOWN, color=RED).next_to(squares[-1], DOWN)
+        high_label = Text("High", font_size=20, color=RED).next_to(high_ptr, DOWN)
+
+        self.play(Create(low_ptr), Write(low_label))
+        self.play(Create(high_ptr), Write(high_label))
+        self.wait(1)
+
+        mid_idx = 4
+        mid_box = SurroundingRectangle(squares[mid_idx], color=YELLOW)
+        mid_label = Text("Mid", font_size=20, color=YELLOW).next_to(mid_box, UP)
+
+        self.play(Create(mid_box), Write(mid_label))
+        self.wait(1)
+
+        compare_text = Text("50 < 70: Search Right", font_size=28).next_to(array_group, DOWN, buff=1.5)
+        self.play(Write(compare_text))
         self.wait(2)
 
-        self.play(FadeOut(*self.mobjects))
-
-        # --- SECTION 4: Final Summary ---
-        summary_title = Text("The Core Idea", font_size=40)
-        summary_title.to_edge(UP)
-        self.play(Write(summary_title))
-
-        line1 = Text("Input Data + Target Answers", font_size=28)
-        line2 = Text("→ Algorithm finds the pattern", font_size=28)
-        line3 = Text("→ Model predicts new data", font_size=28)
-
-        summary_group = VGroup(line1, line2, line3)
-        summary_group.arrange(DOWN, aligned_edge=LEFT, buff=0.5)
-        summary_group.next_to(summary_title, DOWN, buff=1.0)
-
-        self.play(Write(line1))
+        self.play(FadeOut(mid_box), FadeOut(mid_label), FadeOut(compare_text))
+        self.play(low_ptr.animate.next_to(squares[5], DOWN), low_label.animate.next_to(low_ptr, DOWN))
         self.wait(1)
-        self.play(Write(line2))
+
+        mid_idx_2 = 6
+        mid_box_2 = SurroundingRectangle(squares[mid_idx_2], color=YELLOW)
+        mid_label_2 = Text("Mid", font_size=20, color=YELLOW).next_to(mid_box_2, UP)
+
+        self.play(Create(mid_box_2), Write(mid_label_2))
         self.wait(1)
-        self.play(Write(line3))
+
+        found_text = Text("70 == 70: Found!", font_size=28, color=GREEN).next_to(array_group, DOWN, buff=1.5)
+        self.play(Write(found_text))
         self.wait(3)
 
+        self.play(FadeOut(*self.mobjects))
+
+        summary_title = Text("Complexity", font_size=40)
+        summary_title.move_to(UP * 2)
+
+        time_comp = Text("Time Complexity: O(log n)", font_size=28).next_to(summary_title, DOWN, buff=1)
+        space_comp = Text("Space Complexity: O(1)", font_size=28).next_to(time_comp, DOWN, buff=0.5)
+
+        self.play(Write(summary_title))
+        self.wait(1)
+        self.play(Write(time_comp))
+        self.wait(1)
+        self.play(Write(space_comp))
+        self.wait(3)
         self.play(FadeOut(*self.mobjects))
