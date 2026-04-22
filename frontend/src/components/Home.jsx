@@ -37,7 +37,7 @@ function Home() {
       <Hero />
 
       <main className="shell">
-        <section className="panel input-panel">
+        <section className="panel studio-panel">
           <div className="panel-header">
             <span className="panel-badge">AlgoArena • Code Together</span>
             <h2>Generate an animated explainer</h2>
@@ -47,7 +47,7 @@ function Home() {
             </p>
           </div>
 
-          <div className="input-row">
+          <div className="input-row" role="group" aria-label="Video generation controls">
             <input
               className="topic-input"
               type="text"
@@ -75,25 +75,25 @@ function Home() {
               </span>
             </div>
           )}
-        </section>
 
-        <section className="panel preview-panel">
-          <div className="panel-header">
-            <h2>Live preview</h2>
-            <p>Your generated lecture will appear here automatically.</p>
-          </div>
-
-          {videoUrl ? (
-            <VideoPlayer videoUrl={videoUrl} />
-          ) : (
-            <div className="preview-placeholder">
-              <div className="preview-glow" />
-              <p>
-                Enter a topic and click <span>Generate Video</span> to see your
-                first animated explanation.
-              </p>
+          <div className="output-block">
+            <div className="panel-header output-header">
+              <h2>Generated video</h2>
+              <p>Your generated lecture will appear below automatically.</p>
             </div>
-          )}
+
+            {videoUrl ? (
+              <VideoPlayer videoUrl={videoUrl} />
+            ) : (
+              <div className="preview-placeholder">
+                <div className="preview-glow" />
+                <p>
+                  Enter a topic and click <span>Generate Video</span> to see your
+                  first animated explanation.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
       </main>
     </div>
