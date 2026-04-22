@@ -5,6 +5,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 from gtts import gTTS
+from gtts.lang import tts_langs
 
 
 load_dotenv()
@@ -12,7 +13,11 @@ load_dotenv()
 AUDIO_DIR = os.path.join("media", "audio")
 
 
-def generate_narration_audio(text: str, filename: str = "DemoScene_narration.mp3") -> str:
+def generate_narration_audio(
+    text: str,
+    filename: str = "DemoScene_narration.mp3",
+    language: str = "en",
+) -> str:
     """Generate an MP3 narration file from the given text.
 
     Args:
@@ -26,13 +31,18 @@ def generate_narration_audio(text: str, filename: str = "DemoScene_narration.mp3
     if not text or not text.strip():
         raise ValueError("Narration text is empty")
 
+    normalized_language = (language or "en").strip().lower()
+    supported = tts_langs()
+    if normalized_language not in supported:
+        raise ValueError(f"Unsupported narration language for gTTS: {normalized_language}")
+
     os.makedirs(AUDIO_DIR, exist_ok=True)
     audio_path = os.path.join(AUDIO_DIR, filename)
 
-    tts = gTTS(text=text, lang="en")
+    tts = gTTS(text=text, lang=normalized_language)
     tts.save(audio_path)
 
-    print(f"✅ Narration audio saved to {audio_path}")
+    print(f"✅ Narration audio saved to {audio_path} ({normalized_language})")
     return audio_path
 
 

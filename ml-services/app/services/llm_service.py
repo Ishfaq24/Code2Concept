@@ -102,7 +102,7 @@ Now generate clean, sequentially ordered, properly spaced animation code for: {t
             print(f"❌ Error: {e}")
             return self._fallback_code(topic)
 
-    def generate_narration_text(self, topic: str) -> str:
+    def generate_narration_text(self, topic: str, language_name: str = "English") -> str:
         """Generate a spoken narration script for the given topic.
 
         The script is plain text, suitable to be read aloud by TTS.
@@ -113,6 +113,7 @@ You are an expert educator and voice-over writer.
 
 Write a clear, engaging narration script for an educational video
 about the topic: "{topic}".
+Write the entire narration in {language_name}.
 
 Constraints:
 - Plain text only (no markdown, no bullet points, no headings).
@@ -123,7 +124,7 @@ Constraints:
 """
 
         try:
-            print(f"🗣️ Generating narration script for: {topic}")
+            print(f"🗣️ Generating narration script for: {topic} ({language_name})")
 
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -255,7 +256,7 @@ class DemoScene(Scene):
         that older parts of the code expect.
         """
 
-        narration = self.generate_narration_text(topic)
+        narration = self.generate_narration_text(topic, "English")
         return {
             "title": topic.title(),
             "concept": topic,
@@ -281,6 +282,6 @@ def generate_manim_from_script(script: dict) -> str:
     return get_llm_service().generate_manim_video_code(script.get("title", "Topic"))
 
 
-def generate_narration_text(topic: str) -> str:
+def generate_narration_text(topic: str, language_name: str = "English") -> str:
     """Convenience wrapper for narration generation."""
-    return get_llm_service().generate_narration_text(topic)
+    return get_llm_service().generate_narration_text(topic, language_name)

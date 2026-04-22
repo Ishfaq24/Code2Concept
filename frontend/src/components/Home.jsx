@@ -4,8 +4,19 @@ import VideoPlayer from "./VideoPlayer";
 import Loader from "./Loader";
 import Hero from "./Hero";
 
+const LANGUAGE_OPTIONS = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Spanish" },
+  { code: "fr", label: "French" },
+  { code: "de", label: "German" },
+  { code: "it", label: "Italian" },
+  { code: "pt", label: "Portuguese" },
+  { code: "hi", label: "Hindi" },
+];
+
 function Home() {
   const [topic, setTopic] = useState("");
+  const [language, setLanguage] = useState("en");
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
 
@@ -16,11 +27,13 @@ function Home() {
     setVideoUrl(null);
 
     try {
-      const res = await generateVideo(topic.trim());
+      const res = await generateVideo(topic.trim(), language);
       // Only show video when backend reports a successful render
       if (res.status === "success") {
-        // Use /video endpoint and add a cache-busting query param
-        setVideoUrl(getVideoUrl() + `?t=${Date.now()}`);
+        const videoBaseUrl = getVideoUrl(res.video_token);
+        const separator = videoBaseUrl.includes("?") ? "&" : "?";
+        // Add cache-busting query param
+        setVideoUrl(videoBaseUrl + `${separator}t=${Date.now()}`);
       } else {
         const detail = res.error_details || res.error || res.message || "Unknown error";
         alert("Video generation failed: " + detail);
@@ -58,6 +71,19 @@ function Home() {
                 if (e.key === "Enter") handleGenerate();
               }}
             />
+            <select
+              className="language-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              disabled={loading}
+              aria-label="Narration language"
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <button
               className="primary-button"
               onClick={handleGenerate}

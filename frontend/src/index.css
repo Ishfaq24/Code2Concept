@@ -212,6 +212,26 @@ body {
   box-shadow: 0 0 0 1px var(--accent-soft);
 }
 
+.language-select {
+  min-width: 148px;
+  padding: 12px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(55, 65, 81, 0.8);
+  background: rgba(15, 23, 42, 0.98);
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+.language-select:disabled {
+  opacity: 0.5;
+}
+
 .primary-button {
   padding: 12px 20px;
   border-radius: 999px;
@@ -308,5 +328,11 @@ body {
     min-width: 128px;
     padding: 12px 14px;
     font-size: 0.84rem;
+  }
+
+  .language-select {
+    min-width: 118px;
+    font-size: 0.84rem;
+    padding: 12px 10px;
   }
 }

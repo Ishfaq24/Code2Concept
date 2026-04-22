@@ -8,7 +8,10 @@ const VideoPlayer = ({ videoUrl, posterUrl }) => {
     <div className="video-player-wrapper">
       <video 
         className="video-player-element"
-        controls 
+        controls
+        controlsList="nodownload noremoteplayback"
+        disablePictureInPicture
+        onContextMenu={(e) => e.preventDefault()}
         poster={posterUrl}
         preload="metadata"
       >
