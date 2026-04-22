@@ -16,3 +16,28 @@
   aspect-ratio: 16 / 9;
   outline: none;
 }
+
+.video-download-row {
+  padding: 12px 14px 14px;
+  display: flex;
+  justify-content: flex-end;
+  background: linear-gradient(180deg, rgba(2, 6, 23, 0), rgba(2, 6, 23, 0.92));
+}
+
+.video-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 249, 139, 0.45);
+  color: #00f98b;
+  background: rgba(0, 249, 139, 0.08);
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.video-download-button:hover {
+  background: rgba(0, 249, 139, 0.16);
+}

@@ -77,7 +77,11 @@ async def generate_video(request: GenerateRequest):
 
         # Also generate narration script for voice-over
         print("🗣️ Generating narration script...")
-        narration_text = llm_service.generate_narration_text(topic, language_name)
+        narration_text = llm_service.generate_narration_text(
+            topic,
+            language_name,
+            language_code,
+        )
 
         # STEP 2: Clean, prepare and save code
         print("🧹 Step 2: Cleaning and saving code to file...")

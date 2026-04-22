@@ -19,18 +19,21 @@ function Home() {
   const [language, setLanguage] = useState("en");
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
+  const [downloadUrl, setDownloadUrl] = useState(null);
 
   const handleGenerate = async () => {
     if (!topic.trim() || loading) return;
 
     setLoading(true);
     setVideoUrl(null);
+    setDownloadUrl(null);
 
     try {
       const res = await generateVideo(topic.trim(), language);
       // Only show video when backend reports a successful render
       if (res.status === "success") {
         const videoBaseUrl = getVideoUrl(res.video_token);
+        setDownloadUrl(videoBaseUrl);
         const separator = videoBaseUrl.includes("?") ? "&" : "?";
         // Add cache-busting query param
         setVideoUrl(videoBaseUrl + `${separator}t=${Date.now()}`);
@@ -109,7 +112,7 @@ function Home() {
             </div>
 
             {videoUrl ? (
-              <VideoPlayer videoUrl={videoUrl} />
+              <VideoPlayer videoUrl={videoUrl} downloadUrl={downloadUrl || videoUrl} />
             ) : (
               <div className="preview-placeholder">
                 <div className="preview-glow" />
