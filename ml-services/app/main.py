@@ -1,15 +1,28 @@
 import os
 import re
 import subprocess
-from fastapi import FastAPI
+import uuid
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from app.services.llm_service import get_llm_service
 from app.services.voice_service import generate_narration_audio, merge_audio_with_video
 from app.utils.clean_code import clean_code
 
 app = FastAPI()
+
+SUPPORTED_LANGUAGES = {
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "hi": "Hindi",
+}
+
+CURRENT_VIDEO_PATH = None
+CURRENT_VIDEO_TOKEN = None
 
 # CORS
 app.add_middleware(
@@ -20,13 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files
-if os.path.exists("media"):
-    app.mount("/media", StaticFiles(directory="media"), name="media")
-
-
 class GenerateRequest(BaseModel):
     topic: str
+    language: str = "en"
 
 
 @app.get("/")
@@ -42,13 +51,23 @@ async def health():
 @app.post("/generate")
 async def generate_video(request: GenerateRequest):
     """Generate video from topic - ONE STEP process"""
+    global CURRENT_VIDEO_PATH, CURRENT_VIDEO_TOKEN
     
     topic = request.topic.strip()
+    language_code = request.language.lower().strip()
+    language_name = SUPPORTED_LANGUAGES.get(language_code)
     
     if not topic:
         return {"error": "Topic is required"}
+
+    if not language_name:
+        return {
+            "status": "error",
+            "error": "Unsupported language",
+            "supported_languages": list(SUPPORTED_LANGUAGES.keys()),
+        }
     
-    print(f"\n🚀 Generating video for: {topic}\n")
+    print(f"\n🚀 Generating video for: {topic} ({language_name})\n")
     
     try:
         # STEP 1: Generate code
@@ -58,7 +77,11 @@ async def generate_video(request: GenerateRequest):
 
         # Also generate narration script for voice-over
         print("🗣️ Generating narration script...")
-        narration_text = llm_service.generate_narration_text(topic)
+        narration_text = llm_service.generate_narration_text(
+            topic,
+            language_name,
+            language_code,
+        )
 
         # STEP 2: Clean, prepare and save code
         print("🧹 Step 2: Cleaning and saving code to file...")
@@ -115,11 +138,21 @@ async def generate_video(request: GenerateRequest):
 
             # STEP 4: Generate narration audio and merge with video
             try:
-                print("🎙️ Generating narration audio...")
-                audio_path = generate_narration_audio(narration_text)
+                print(f"🎙️ Generating narration audio ({language_code})...")
+                audio_filename = f"DemoScene_narration_{language_code}.mp3"
+                audio_path = generate_narration_audio(
+                    narration_text,
+                    filename=audio_filename,
+                    language=language_code,
+                )
 
                 print("🎧 Merging audio with video...")
-                merged_path = merge_audio_with_video(base_video_path, audio_path)
+                merged_output_path = f"media/videos/scene/1080p30/DemoScene_voiced_{language_code}.mp4"
+                merged_path = merge_audio_with_video(
+                    base_video_path,
+                    audio_path,
+                    output_path=merged_output_path,
+                )
 
                 if merged_path:
                     voiced_video_path = merged_path
@@ -130,14 +163,18 @@ async def generate_video(request: GenerateRequest):
                 print(f"⚠️ Voice generation failed, using silent video. Error: {ve}")
 
             final_video_path = voiced_video_path or base_video_path
+            CURRENT_VIDEO_PATH = final_video_path
+            CURRENT_VIDEO_TOKEN = uuid.uuid4().hex
 
             return {
                 "status": "success",
                 "message": "Video generated successfully",
                 "topic": topic,
                 "video_path": final_video_path,
+                "language": language_code,
                 "voice_enabled": voice_enabled,
                 "narration_text": narration_text,
+                "video_token": CURRENT_VIDEO_TOKEN,
             }
         else:
             error_msg = result.stderr[:1000] if result.stderr else result.stdout[:1000]
@@ -159,21 +196,34 @@ async def generate_video(request: GenerateRequest):
 
 
 @app.get("/video")
-async def get_video(t: str = None):
+async def get_video(token: str, t: str = None):
     """Get the latest rendered video"""
+    if not CURRENT_VIDEO_TOKEN or token != CURRENT_VIDEO_TOKEN:
+        raise HTTPException(status_code=403, detail="Access denied")
+
     try:
         # Prefer high quality if available, otherwise fall back
         candidates = [
-            # Prefer voiced version if available
-            "media/videos/scene/1080p30/DemoScene_voiced.mp4",
+            CURRENT_VIDEO_PATH,
+            "media/videos/scene/1080p30/DemoScene_voiced_en.mp4",
             "media/videos/scene/1080p30/DemoScene.mp4",
             "media/videos/scene/720p30/DemoScene.mp4",
             "media/videos/scene/480p15/DemoScene.mp4",
         ]
-        video_path = next((p for p in candidates if os.path.exists(p)), None)
+        video_path = next((p for p in candidates if p and os.path.exists(p)), None)
         if video_path:
             from fastapi.responses import FileResponse
-            return FileResponse(video_path, media_type="video/mp4")
+            return FileResponse(
+                video_path,
+                media_type="video/mp4",
+                headers={
+                    "Content-Disposition": "inline",
+                    "Cache-Control": "no-store, no-cache, must-revalidate, private",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
         return {"error": "Video not found"}
     except Exception as e:
         return {"error": str(e)}

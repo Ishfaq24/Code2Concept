@@ -102,7 +102,12 @@ Now generate clean, sequentially ordered, properly spaced animation code for: {t
             print(f"❌ Error: {e}")
             return self._fallback_code(topic)
 
-    def generate_narration_text(self, topic: str) -> str:
+    def generate_narration_text(
+        self,
+        topic: str,
+        language_name: str = "English",
+        language_code: str = "en",
+    ) -> str:
         """Generate a spoken narration script for the given topic.
 
         The script is plain text, suitable to be read aloud by TTS.
@@ -113,6 +118,8 @@ You are an expert educator and voice-over writer.
 
 Write a clear, engaging narration script for an educational video
 about the topic: "{topic}".
+Write the entire narration in {language_name}.
+If language is Hindi, you MUST write in Devanagari script.
 
 Constraints:
 - Plain text only (no markdown, no bullet points, no headings).
@@ -123,7 +130,7 @@ Constraints:
 """
 
         try:
-            print(f"🗣️ Generating narration script for: {topic}")
+            print(f"🗣️ Generating narration script for: {topic} ({language_name}/{language_code})")
 
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -140,17 +147,96 @@ Constraints:
             if narration.endswith("```"):
                 narration = narration.rsplit("\n", 1)[0]
 
+            narration = self._ensure_target_language(
+                text=narration,
+                topic=topic,
+                language_name=language_name,
+                language_code=language_code,
+            )
+
             print("✅ Narration script generated")
             return narration
 
         except Exception as e:
             print(f"❌ Error generating narration script: {e}")
-            # Fallback to a simple generic narration
+            # Fallback to language-aware generic narration
+            if language_code == "hi":
+                return (
+                    f"इस पाठ में हम {topic} के मुख्य विचारों को सरल तरीके से समझेंगे। "
+                    "सबसे पहले हम इसकी मूल अवधारणा देखेंगे। "
+                    "फिर एक आसान उदाहरण के साथ इसे समझेंगे। "
+                    "अंत में हम जानेंगे कि इसे वास्तविक जीवन में कैसे उपयोग किया जाता है।"
+                )
             return (
                 f"In this lesson, we will quickly explore the core ideas of {topic}. "
                 "We will start with the basic intuition, then walk through a simple example, "
                 "and finally connect the concept back to real-world usage."
             )
+
+    def _ensure_target_language(
+        self,
+        text: str,
+        topic: str,
+        language_name: str,
+        language_code: str,
+    ) -> str:
+        if language_code == "en":
+            return text
+
+        # For Hindi, ensure Devanagari is present; if not, translate/enforce.
+        if language_code == "hi" and not self._has_devanagari(text):
+            print("⚠️ Narration is not in Devanagari. Enforcing Hindi translation...")
+            translated = self._translate_text(text, language_name, language_code)
+            if translated and self._has_devanagari(translated):
+                return translated
+
+            # Safe fallback in Hindi if translation still fails
+            return (
+                f"आज हम {topic} विषय को सरल भाषा में समझेंगे। "
+                "पहले इसकी बुनियादी अवधारणा देखेंगे। "
+                "फिर चरणबद्ध तरीके से एक उदाहरण समझेंगे। "
+                "अंत में इसके व्यावहारिक उपयोगों पर चर्चा करेंगे।"
+            )
+
+        # For other non-English languages, translate once to enforce target language.
+        translated = self._translate_text(text, language_name, language_code)
+        return translated or text
+
+    def _translate_text(self, text: str, language_name: str, language_code: str) -> str:
+        prompt = f"""
+Translate the following educational narration into {language_name}.
+
+Rules:
+- Output only translated narration text.
+- Keep 6-12 short conversational sentences.
+- No markdown, no bullets, no headings.
+- Keep meaning accurate.
+- If target language is Hindi, use Devanagari script only.
+
+Text:
+{text}
+"""
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=900,
+            )
+            translated = response.choices[0].message.content.strip()
+            if translated.startswith("```"):
+                translated = translated.split("\n", 1)[-1]
+            if translated.endswith("```"):
+                translated = translated.rsplit("\n", 1)[0]
+            return translated
+        except Exception as e:
+            print(f"❌ Translation to {language_code} failed: {e}")
+            return ""
+
+    def _has_devanagari(self, text: str) -> bool:
+        # Devanagari Unicode block: U+0900 to U+097F
+        return bool(re.search(r"[\u0900-\u097F]", text))
 
     # ---------------- CLEANING METHODS ---------------- #
 
@@ -255,7 +341,7 @@ class DemoScene(Scene):
         that older parts of the code expect.
         """
 
-        narration = self.generate_narration_text(topic)
+        narration = self.generate_narration_text(topic, "English", "en")
         return {
             "title": topic.title(),
             "concept": topic,
@@ -281,6 +367,10 @@ def generate_manim_from_script(script: dict) -> str:
     return get_llm_service().generate_manim_video_code(script.get("title", "Topic"))
 
 
-def generate_narration_text(topic: str) -> str:
+def generate_narration_text(
+    topic: str,
+    language_name: str = "English",
+    language_code: str = "en",
+) -> str:
     """Convenience wrapper for narration generation."""
-    return get_llm_service().generate_narration_text(topic)
+    return get_llm_service().generate_narration_text(topic, language_name, language_code)
