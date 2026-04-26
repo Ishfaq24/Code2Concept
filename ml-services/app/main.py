@@ -3,6 +3,7 @@ import re
 import subprocess
 import uuid
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.services.llm_service import get_llm_service
@@ -23,6 +24,11 @@ SUPPORTED_LANGUAGES = {
 
 CURRENT_VIDEO_PATH = None
 CURRENT_VIDEO_TOKEN = None
+CURRENT_PDF_PATH = None
+CURRENT_STUDY_GUIDE = None
+CURRENT_TOPIC = None
+CURRENT_LANGUAGE_NAME = None
+CURRENT_LANGUAGE_CODE = None
 
 # CORS
 app.add_middleware(
@@ -51,7 +57,8 @@ async def health():
 @app.post("/generate")
 async def generate_video(request: GenerateRequest):
     """Generate video from topic - ONE STEP process"""
-    global CURRENT_VIDEO_PATH, CURRENT_VIDEO_TOKEN
+    global CURRENT_VIDEO_PATH, CURRENT_VIDEO_TOKEN, CURRENT_PDF_PATH
+    global CURRENT_STUDY_GUIDE, CURRENT_TOPIC, CURRENT_LANGUAGE_NAME, CURRENT_LANGUAGE_CODE
     
     topic = request.topic.strip()
     language_code = request.language.lower().strip()
@@ -81,6 +88,12 @@ async def generate_video(request: GenerateRequest):
             topic,
             language_name,
             language_code,
+        )
+
+        study_guide = llm_service.generate_study_guide(
+            topic,
+            "English",
+            "en",
         )
 
         # STEP 2: Clean, prepare and save code
@@ -163,14 +176,35 @@ async def generate_video(request: GenerateRequest):
                 print(f"⚠️ Voice generation failed, using silent video. Error: {ve}")
 
             final_video_path = voiced_video_path or base_video_path
-            CURRENT_VIDEO_PATH = final_video_path
             CURRENT_VIDEO_TOKEN = uuid.uuid4().hex
+            CURRENT_VIDEO_PATH = final_video_path
+            CURRENT_PDF_PATH = None
+            CURRENT_STUDY_GUIDE = study_guide
+            CURRENT_TOPIC = topic
+            CURRENT_LANGUAGE_NAME = language_name
+            CURRENT_LANGUAGE_CODE = language_code
+            pdf_error = None
+
+            try:
+                CURRENT_PDF_PATH = _build_study_guide_pdf(
+                    study_guide=study_guide,
+                    topic=topic,
+                    language_name=language_name,
+                    language_code=language_code,
+                    token=CURRENT_VIDEO_TOKEN,
+                )
+            except Exception as pdf_error:
+                pdf_error = str(pdf_error)
+                print(f"⚠️ PDF generation failed, continuing with video only. Error: {pdf_error}")
 
             return {
                 "status": "success",
                 "message": "Video generated successfully",
                 "topic": topic,
                 "video_path": final_video_path,
+                "pdf_path": CURRENT_PDF_PATH,
+                "pdf_available": bool(CURRENT_PDF_PATH),
+                "pdf_error": pdf_error,
                 "language": language_code,
                 "voice_enabled": voice_enabled,
                 "narration_text": narration_text,
@@ -193,6 +227,135 @@ async def generate_video(request: GenerateRequest):
         import traceback
         traceback.print_exc()
         return {"status": "error", "message": str(e)}
+
+
+def _build_study_guide_pdf(study_guide, topic: str, language_name: str, language_code: str, token: str) -> str:
+    """Render the generated study guide into a downloadable PDF."""
+
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_LEFT
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import inch
+        from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
+        from xml.sax.saxutils import escape
+    except ImportError as exc:
+        raise RuntimeError(
+            "reportlab is required to generate PDFs. Install ml-services dependencies first."
+        ) from exc
+
+    os.makedirs("media/pdfs", exist_ok=True)
+    pdf_path = f"media/pdfs/{token}_study_guide.pdf"
+
+    def safe_text(value: str) -> str:
+        text = value or ""
+        try:
+            text.encode("latin-1")
+            return text
+        except UnicodeEncodeError:
+            # Keep PDF generation resilient with default fonts.
+            return text.encode("latin-1", "replace").decode("latin-1")
+
+    def paragraph_text(value: str) -> str:
+        return escape(safe_text(value)).replace("\n", "<br/>")
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "GuideTitle",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=22,
+        leading=28,
+        textColor=colors.HexColor("#0f172a"),
+        spaceAfter=10,
+    )
+    subtitle_style = ParagraphStyle(
+        "GuideSubtitle",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=11,
+        leading=15,
+        textColor=colors.HexColor("#475569"),
+        spaceAfter=16,
+    )
+    heading_style = ParagraphStyle(
+        "GuideHeading",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        leading=18,
+        textColor=colors.HexColor("#0f766e"),
+        spaceBefore=10,
+        spaceAfter=6,
+    )
+    body_style = ParagraphStyle(
+        "GuideBody",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=10.5,
+        leading=15,
+        textColor=colors.HexColor("#111827"),
+        spaceAfter=8,
+    )
+    bullet_style = ParagraphStyle(
+        "GuideBullet",
+        parent=body_style,
+        leftIndent=12,
+        bulletIndent=0,
+    )
+
+    document = SimpleDocTemplate(
+        pdf_path,
+        pagesize=letter,
+        leftMargin=0.8 * inch,
+        rightMargin=0.8 * inch,
+        topMargin=0.8 * inch,
+        bottomMargin=0.8 * inch,
+        title=study_guide.get("title") or f"Study Guide: {topic}",
+        author="Video Generation App",
+    )
+
+    story = []
+    story.append(Paragraph(paragraph_text(study_guide.get("title") or f"Study Guide: {topic}"), title_style))
+    story.append(Paragraph(paragraph_text(study_guide.get("subtitle") or f"A detailed revision guide in {language_name}"), subtitle_style))
+    story.append(Paragraph(paragraph_text(f"Topic: {topic} | Language: {language_name} | Version: {language_code.upper()}"), subtitle_style))
+
+    def add_section(title: str, content: str):
+        if not content:
+            return
+        story.append(Paragraph(paragraph_text(title), heading_style))
+        story.append(Paragraph(paragraph_text(content), body_style))
+
+    def add_bullets(title: str, items):
+        if not items:
+            return
+        story.append(Paragraph(paragraph_text(title), heading_style))
+        bullets = []
+        for item in items:
+            bullets.append(ListItem(Paragraph(paragraph_text(str(item)), bullet_style)))
+        story.append(ListFlowable(bullets, bulletType="bullet", leftIndent=16))
+
+    add_section("Overview", study_guide.get("overview", ""))
+
+    core_concepts = study_guide.get("core_concepts", []) or []
+    if core_concepts:
+        story.append(Paragraph(paragraph_text("Core Concepts"), heading_style))
+        for concept in core_concepts:
+            heading = concept.get("heading") if isinstance(concept, dict) else "Concept"
+            content = concept.get("content") if isinstance(concept, dict) else str(concept)
+            story.append(Paragraph(paragraph_text(str(heading)), body_style))
+            story.append(Paragraph(paragraph_text(str(content)), body_style))
+
+    add_section("Worked Example", study_guide.get("worked_example", ""))
+    add_bullets("Real-World Applications", study_guide.get("real_world_applications", []))
+    add_bullets("Common Misconceptions", study_guide.get("common_misconceptions", []))
+    add_section("Quick Recap", study_guide.get("quick_recap", ""))
+    add_bullets("Practice Questions", study_guide.get("practice_questions", []))
+    add_bullets("Further Learning", study_guide.get("further_learning", []))
+
+    document.build(story)
+    return pdf_path
 
 
 @app.get("/video")
@@ -227,6 +390,68 @@ async def get_video(token: str, t: str = None):
         return {"error": "Video not found"}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/pdf")
+async def get_pdf(token: str, t: str = None):
+    """Get the latest generated study guide as a PDF"""
+    if not CURRENT_VIDEO_TOKEN or token != CURRENT_VIDEO_TOKEN:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    pdf_candidates = [
+        CURRENT_PDF_PATH,
+        "media/pdfs/generated_study_guide.pdf",
+    ]
+    pdf_path = next((p for p in pdf_candidates if p and os.path.exists(p)), None)
+
+    if not pdf_path:
+        raise HTTPException(status_code=404, detail="PDF not found")
+
+    return FileResponse(
+        pdf_path,
+        media_type="application/pdf",
+        filename=os.path.basename(pdf_path),
+        headers={
+            "Content-Disposition": f'attachment; filename="{os.path.basename(pdf_path)}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, private",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.post("/regenerate-pdf")
+async def regenerate_pdf(token: str):
+    """Retry generating the PDF without re-rendering the video."""
+    global CURRENT_PDF_PATH
+
+    if not CURRENT_VIDEO_TOKEN or token != CURRENT_VIDEO_TOKEN:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not CURRENT_STUDY_GUIDE or not CURRENT_TOPIC:
+        raise HTTPException(status_code=404, detail="No study guide available. Generate a video first.")
+
+    try:
+        CURRENT_PDF_PATH = _build_study_guide_pdf(
+            study_guide=CURRENT_STUDY_GUIDE,
+            topic=CURRENT_TOPIC,
+            language_name=CURRENT_LANGUAGE_NAME or "English",
+            language_code=CURRENT_LANGUAGE_CODE or "en",
+            token=CURRENT_VIDEO_TOKEN,
+        )
+
+        return {
+            "status": "success",
+            "pdf_available": True,
+            "pdf_path": CURRENT_PDF_PATH,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "pdf_available": False,
+            "error": str(e),
+        }
 
 
 if __name__ == "__main__":

@@ -20,6 +20,8 @@
 .video-download-row {
   padding: 12px 14px 14px;
   display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
   justify-content: flex-end;
   background: linear-gradient(180deg, rgba(2, 6, 23, 0), rgba(2, 6, 23, 0.92));
 }
@@ -40,4 +42,29 @@
 
 .video-download-button:hover {
   background: rgba(0, 249, 139, 0.16);
+}
+
+.video-download-button-secondary {
+  border-color: rgba(96, 165, 250, 0.42);
+  color: #93c5fd;
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.video-download-button-secondary:hover {
+  background: rgba(96, 165, 250, 0.16);
+}
+
+.video-download-button-disabled {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: rgba(226, 232, 240, 0.72);
+  background: rgba(148, 163, 184, 0.08);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.video-pdf-error {
+  margin: 0;
+  padding: 0 14px 14px;
+  font-size: 0.82rem;
+  color: #fca5a5;
 }

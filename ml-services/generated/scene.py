@@ -2,116 +2,132 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        title = Text("What is Binary Search?", font_size=40)
+        # --- PART 1: INTRODUCTION ---
+        title = Text("Understanding Neural Networks", font_size=40)
         title.to_edge(UP)
         self.play(Write(title))
         self.wait(1)
 
-        desc1 = Text("An efficient way to find an item", font_size=28)
-        desc1.next_to(title, DOWN, buff=0.5)
-        self.play(Write(desc1))
+        intro_text1 = Text("Inspired by the human brain", font_size=28)
+        intro_text1.next_to(title, DOWN, buff=1)
+        self.play(Write(intro_text1))
         self.wait(1)
 
-        desc2 = Text("in a SORTED list.", font_size=28, color=YELLOW)
-        desc2.next_to(desc1, DOWN, buff=0.4)
-        self.play(Write(desc2))
+        intro_text2 = Text("Processes data in layers", font_size=28)
+        intro_text2.next_to(intro_text1, DOWN, buff=0.5)
+        self.play(Write(intro_text2))
         self.wait(2)
 
         self.play(FadeOut(*self.mobjects))
 
-        header = Text("How it Works", font_size=35)
-        header.to_edge(UP)
-        self.play(Write(header))
+        # --- PART 2: THE NEURON (PERCEPTRON) ---
+        neuron_title = Text("The Basic Unit: The Neuron", font_size=40)
+        neuron_title.to_edge(UP)
+        self.play(Write(neuron_title))
         self.wait(1)
 
-        nums = [10, 20, 30, 40, 50, 60, 70]
-        squares = VGroup(*[Square(side_length=0.8) for _ in range(len(nums))])
-        squares.arrange(RIGHT, buff=0.1).shift(UP * 0.5)
-
-        labels = VGroup(*[Text(str(n), font_size=24) for n in nums])
-        for i in range(len(labels)):
-            labels[i].move_to(squares[i].get_center())
-
-        array_group = VGroup(squares, labels)
-        self.play(Create(squares), Write(labels))
+        # Visuals for Neuron
+        input_node = Circle(radius=0.4, color=BLUE).shift(LEFT * 3)
+        input_label = Text("Input (x)", font_size=24).next_to(input_node, LEFT)
+        self.play(Create(input_node), Write(input_label))
         self.wait(1)
 
-        target_text = Text("Target: 60", font_size=28, color=YELLOW)
-        target_text.next_to(array_group, DOWN, buff=0.7)
-        self.play(Write(target_text))
+        neuron_node = Circle(radius=0.6, color=WHITE).shift(ORIGIN)
+        neuron_label = Text("Neuron", font_size=24).next_to(neuron_node, UP)
+        self.play(Create(neuron_node), Write(neuron_label))
         self.wait(1)
 
-        low_ptr = Arrow(start=DOWN, end=UP, color=BLUE).scale(0.5)
-        low_ptr.next_to(squares[0], DOWN, buff=0.2)
-        low_label = Text("Low", font_size=20, color=BLUE).next_to(low_ptr, DOWN, buff=0.1)
-        self.play(Create(low_ptr), Write(low_label))
+        conn_arrow = Arrow(input_node.get_right(), neuron_node.get_left(), buff=0.1)
+        weight_label = Text("Weight (w)", font_size=24).next_to(conn_arrow, UP)
+        self.play(Create(conn_arrow), Write(weight_label))
         self.wait(1)
 
-        high_ptr = Arrow(start=DOWN, end=UP, color=RED).scale(0.5)
-        high_ptr.next_to(squares[-1], DOWN, buff=0.2)
-        high_label = Text("High", font_size=20, color=RED).next_to(high_ptr, DOWN, buff=0.1)
-        self.play(Create(high_ptr), Write(high_label))
+        output_node = Circle(radius=0.4, color=GREEN).shift(RIGHT * 3)
+        output_label = Text("Output (y)", font_size=24).next_to(output_node, RIGHT)
+        self.play(Create(output_node), Write(output_label))
         self.wait(1)
 
-        mid_idx = 3
-        mid_ptr = Arrow(start=DOWN, end=UP, color=GREEN).scale(0.5)
-        mid_ptr.next_to(squares[mid_idx], DOWN, buff=0.2)
-        mid_label = Text("Mid", font_size=20, color=GREEN).next_to(mid_ptr, DOWN, buff=0.1)
-
-        self.play(Create(mid_ptr), Write(mid_label))
+        out_arrow = Arrow(neuron_node.get_right(), output_node.get_left(), buff=0.1)
+        self.play(Create(out_arrow))
         self.wait(1)
 
-        mid_box = SurroundingRectangle(squares[mid_idx], color=GREEN)
-        self.play(Create(mid_box))
+        # Highlight Process
+        process_text = Text("Sum(x * w) + bias -> Activation", font_size=28)
+        process_text.next_to(neuron_node, DOWN, buff=1)
+        self.play(Write(process_text))
+
+        box = SurroundingRectangle(process_text, color=YELLOW)
+        self.play(Create(box))
+        self.wait(2)
+
+        self.play(FadeOut(*self.mobjects))
+
+        # --- PART 3: NETWORK ARCHITECTURE ---
+        net_title = Text("Network Architecture", font_size=40)
+        net_title.to_edge(UP)
+        self.play(Write(net_title))
         self.wait(1)
 
-        step1 = Text("40 < 60: Discard Left Half", font_size=24)
-        step1.next_to(target_text, DOWN, buff=0.5)
+        # Layers
+        layer1_title = Text("Input Layer", font_size=28).shift(LEFT * 4 + UP * 1)
+        layer2_title = Text("Hidden Layer", font_size=28).shift(ORIGIN + UP * 1)
+        layer3_title = Text("Output Layer", font_size=28).shift(RIGHT * 4 + UP * 1)
+
+        self.play(Write(layer1_title), Write(layer2_title), Write(layer3_title))
+        self.wait(1)
+
+        # Nodes
+        in_nodes = VGroup(*[Circle(radius=0.3, color=BLUE) for _ in range(3)])
+        in_nodes.arrange(DOWN, buff=0.5).shift(LEFT * 4)
+
+        hid_nodes = VGroup(*[Circle(radius=0.3, color=WHITE) for _ in range(4)])
+        hid_nodes.arrange(DOWN, buff=0.4).shift(ORIGIN)
+
+        out_nodes = VGroup(*[Circle(radius=0.3, color=GREEN) for _ in range(2)])
+        out_nodes.arrange(DOWN, buff=0.8).shift(RIGHT * 4)
+
+        self.play(Create(in_nodes))
+        self.wait(1)
+        self.play(Create(hid_nodes))
+        self.wait(1)
+        self.play(Create(out_nodes))
+        self.wait(1)
+
+        # Connections
+        connections = VGroup()
+        for i in in_nodes:
+            for j in hid_nodes:
+                connections.add(Line(i.get_right(), j.get_left(), stroke_width=1, color=GRAY))
+
+        for j in hid_nodes:
+            for k in out_nodes:
+                connections.add(Line(j.get_right(), k.get_left(), stroke_width=1, color=GRAY))
+
+        self.play(Create(connections), run_time=3)
+        self.wait(2)
+
+        self.play(FadeOut(*self.mobjects))
+
+        # --- PART 4: SUMMARY ---
+        sum_title = Text("How it Learns", font_size=40)
+        sum_title.to_edge(UP)
+        self.play(Write(sum_title))
+        self.wait(1)
+
+        step1 = Text("1. Forward Pass: Predicts result", font_size=28)
+        step2 = Text("2. Loss Function: Measures error", font_size=28)
+        step3 = Text("3. Backpropagation: Adjusts weights", font_size=28)
+
+        summary_group = VGroup(step1, step2, step3).arrange(DOWN, aligned_edge=LEFT, buff=0.6)
+        summary_group.shift(DOWN * 0.5)
+
         self.play(Write(step1))
-        self.wait(2)
-
-        self.play(FadeOut(mid_ptr), FadeOut(mid_label), FadeOut(mid_box), FadeOut(step1))
-
-        low_ptr.next_to(squares[4], DOWN, buff=0.2)
-        low_label.next_to(low_ptr, DOWN, buff=0.1)
-        self.play(low_ptr.animate.move_to(low_ptr), low_label.animate.move_to(low_label))
         self.wait(1)
-
-        mid_idx_2 = 5
-        mid_ptr_2 = Arrow(start=DOWN, end=UP, color=GREEN).scale(0.5)
-        mid_ptr_2.next_to(squares[mid_idx_2], DOWN, buff=0.2)
-        mid_label_2 = Text("Mid", font_size=20, color=GREEN).next_to(mid_ptr_2, DOWN, buff=0.1)
-
-        self.play(Create(mid_ptr_2), Write(mid_label_2))
-        self.wait(1)
-
-        mid_box_2 = SurroundingRectangle(squares[mid_idx_2], color=GREEN)
-        self.play(Create(mid_box_2))
-        self.wait(1)
-
-        step2 = Text("60 == 60: FOUND!", font_size=24, color=YELLOW)
-        step2.next_to(target_text, DOWN, buff=0.5)
         self.play(Write(step2))
+        self.wait(1)
+        self.play(Write(step3))
         self.wait(2)
 
-        self.play(FadeOut(*self.mobjects))
-
-        summary_title = Text("Summary", font_size=35)
-        summary_title.to_edge(UP)
-        self.play(Write(summary_title))
-        self.wait(1)
-
-        point1 = Text("1. List must be sorted", font_size=28)
-        point1.next_to(summary_title, DOWN, buff=0.6)
-        self.play(Write(point1))
-        self.wait(1)
-
-        point2 = Text("2. Divide search area by half", font_size=28)
-        point2.next_to(point1, DOWN, buff=0.4)
-        self.play(Write(point2))
-        self.wait(1)
-
-        point3 = Text("3. Much faster than linear search", font_size=28)
-        point3.next_to(point2, DOWN, buff=0.4)
-        self.play(Write(point3))
-        self.wait(2)
+        final_box = SurroundingRectangle(summary_group, color=GOLD)
+        self.play(Create(final_box))
+        self.wait(3)
