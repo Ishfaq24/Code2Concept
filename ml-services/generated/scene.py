@@ -2,132 +2,98 @@ from manim import *
 
 class DemoScene(Scene):
     def construct(self):
-        # --- PART 1: INTRODUCTION ---
-        title = Text("Understanding Neural Networks", font_size=40)
+        title = Text("Merge Sort Algorithm", font_size=40)
         title.to_edge(UP)
         self.play(Write(title))
         self.wait(1)
 
-        intro_text1 = Text("Inspired by the human brain", font_size=28)
-        intro_text1.next_to(title, DOWN, buff=1)
-        self.play(Write(intro_text1))
-        self.wait(1)
-
-        intro_text2 = Text("Processes data in layers", font_size=28)
-        intro_text2.next_to(intro_text1, DOWN, buff=0.5)
-        self.play(Write(intro_text2))
+        desc1 = Text("Divide and Conquer Strategy", font_size=28)
+        desc1.next_to(title, DOWN, buff=0.5)
+        self.play(Write(desc1))
         self.wait(2)
 
         self.play(FadeOut(*self.mobjects))
 
-        # --- PART 2: THE NEURON (PERCEPTRON) ---
-        neuron_title = Text("The Basic Unit: The Neuron", font_size=40)
-        neuron_title.to_edge(UP)
-        self.play(Write(neuron_title))
+        list_vals = [38, 27, 43, 3, 9, 82, 10]
+        array_group = VGroup(*[Square(side_length=0.8) for _ in range(len(list_vals))])
+        array_group.arrange(RIGHT, buff=0.1)
+        array_group.move_to(UP * 2)
+
+        labels = VGroup(*[Text(str(v), font_size=24).move_to(sq.get_center()) for v, sq in zip(list_vals, array_group)])
+
+        self.play(Create(array_group), Write(labels))
         self.wait(1)
 
-        # Visuals for Neuron
-        input_node = Circle(radius=0.4, color=BLUE).shift(LEFT * 3)
-        input_label = Text("Input (x)", font_size=24).next_to(input_node, LEFT)
-        self.play(Create(input_node), Write(input_label))
+        step1_txt = Text("Step 1: Divide into halves", font_size=28)
+        step1_txt.next_to(array_group, DOWN, buff=1)
+        self.play(Write(step1_txt))
         self.wait(1)
 
-        neuron_node = Circle(radius=0.6, color=WHITE).shift(ORIGIN)
-        neuron_label = Text("Neuron", font_size=24).next_to(neuron_node, UP)
-        self.play(Create(neuron_node), Write(neuron_label))
+        left_half = VGroup(array_group[0:4], labels[0:4]).copy()
+        right_half = VGroup(array_group[4:7], labels[4:7]).copy()
+
+        left_half.shift(LEFT * 2 + DOWN * 1.5)
+        right_half.shift(RIGHT * 2 + DOWN * 1.5)
+
+        arrow_l = Arrow(array_group.get_center(), left_half.get_top(), color=BLUE)
+        arrow_r = Arrow(array_group.get_center(), right_half.get_top(), color=BLUE)
+
+        self.play(Create(arrow_l), Create(arrow_r))
+        self.play(FadeIn(left_half), FadeIn(right_half))
+        self.wait(2)
+
+        self.play(FadeOut(*self.mobjects))
+
+        merge_title = Text("Step 2: Merge and Sort", font_size=40)
+        merge_title.to_edge(UP)
+        self.play(Write(merge_title))
         self.wait(1)
 
-        conn_arrow = Arrow(input_node.get_right(), neuron_node.get_left(), buff=0.1)
-        weight_label = Text("Weight (w)", font_size=24).next_to(conn_arrow, UP)
-        self.play(Create(conn_arrow), Write(weight_label))
+        unsorted = VGroup(
+            Text("[3, 27]", font_size=28),
+            Text("[9, 82, 10]", font_size=28)
+        ).arrange(RIGHT, buff=2).shift(UP * 1)
+
+        self.play(Write(unsorted))
         self.wait(1)
 
-        output_node = Circle(radius=0.4, color=GREEN).shift(RIGHT * 3)
-        output_label = Text("Output (y)", font_size=24).next_to(output_node, RIGHT)
-        self.play(Create(output_node), Write(output_label))
-        self.wait(1)
+        sorted_res = Text("[3, 9, 10, 27, 82]", font_size=28, color=GREEN)
+        sorted_res.next_to(unsorted, DOWN, buff=1.5)
 
-        out_arrow = Arrow(neuron_node.get_right(), output_node.get_left(), buff=0.1)
-        self.play(Create(out_arrow))
-        self.wait(1)
+        merge_arrow = Arrow(unsorted.get_bottom(), sorted_res.get_top(), color=YELLOW)
 
-        # Highlight Process
-        process_text = Text("Sum(x * w) + bias -> Activation", font_size=28)
-        process_text.next_to(neuron_node, DOWN, buff=1)
-        self.play(Write(process_text))
+        self.play(Create(merge_arrow))
+        self.play(Write(sorted_res))
+        self.wait(2)
 
-        box = SurroundingRectangle(process_text, color=YELLOW)
+        box = SurroundingRectangle(sorted_res, color=YELLOW)
         self.play(Create(box))
-        self.wait(2)
+        self.wait(1)
 
         self.play(FadeOut(*self.mobjects))
 
-        # --- PART 3: NETWORK ARCHITECTURE ---
-        net_title = Text("Network Architecture", font_size=40)
-        net_title.to_edge(UP)
-        self.play(Write(net_title))
+        summary_title = Text("Merge Sort Summary", font_size=40)
+        summary_title.to_edge(UP)
+        self.play(Write(summary_title))
         self.wait(1)
 
-        # Layers
-        layer1_title = Text("Input Layer", font_size=28).shift(LEFT * 4 + UP * 1)
-        layer2_title = Text("Hidden Layer", font_size=28).shift(ORIGIN + UP * 1)
-        layer3_title = Text("Output Layer", font_size=28).shift(RIGHT * 4 + UP * 1)
+        line1 = Text("1. Divide array into halves", font_size=28)
+        line1.next_to(summary_title, DOWN, buff=0.8)
 
-        self.play(Write(layer1_title), Write(layer2_title), Write(layer3_title))
+        line2 = Text("2. Recursively sort sub-arrays", font_size=28)
+        line2.next_to(line1, DOWN, buff=0.4)
+
+        line3 = Text("3. Merge sorted halves together", font_size=28)
+        line3.next_to(line2, DOWN, buff=0.4)
+
+        line4 = Text("Time Complexity: O(n log n)", font_size=28, color=YELLOW)
+        line4.next_to(line3, DOWN, buff=0.8)
+
+        self.play(Write(line1))
         self.wait(1)
-
-        # Nodes
-        in_nodes = VGroup(*[Circle(radius=0.3, color=BLUE) for _ in range(3)])
-        in_nodes.arrange(DOWN, buff=0.5).shift(LEFT * 4)
-
-        hid_nodes = VGroup(*[Circle(radius=0.3, color=WHITE) for _ in range(4)])
-        hid_nodes.arrange(DOWN, buff=0.4).shift(ORIGIN)
-
-        out_nodes = VGroup(*[Circle(radius=0.3, color=GREEN) for _ in range(2)])
-        out_nodes.arrange(DOWN, buff=0.8).shift(RIGHT * 4)
-
-        self.play(Create(in_nodes))
+        self.play(Write(line2))
         self.wait(1)
-        self.play(Create(hid_nodes))
+        self.play(Write(line3))
         self.wait(1)
-        self.play(Create(out_nodes))
-        self.wait(1)
-
-        # Connections
-        connections = VGroup()
-        for i in in_nodes:
-            for j in hid_nodes:
-                connections.add(Line(i.get_right(), j.get_left(), stroke_width=1, color=GRAY))
-
-        for j in hid_nodes:
-            for k in out_nodes:
-                connections.add(Line(j.get_right(), k.get_left(), stroke_width=1, color=GRAY))
-
-        self.play(Create(connections), run_time=3)
-        self.wait(2)
-
-        self.play(FadeOut(*self.mobjects))
-
-        # --- PART 4: SUMMARY ---
-        sum_title = Text("How it Learns", font_size=40)
-        sum_title.to_edge(UP)
-        self.play(Write(sum_title))
-        self.wait(1)
-
-        step1 = Text("1. Forward Pass: Predicts result", font_size=28)
-        step2 = Text("2. Loss Function: Measures error", font_size=28)
-        step3 = Text("3. Backpropagation: Adjusts weights", font_size=28)
-
-        summary_group = VGroup(step1, step2, step3).arrange(DOWN, aligned_edge=LEFT, buff=0.6)
-        summary_group.shift(DOWN * 0.5)
-
-        self.play(Write(step1))
-        self.wait(1)
-        self.play(Write(step2))
-        self.wait(1)
-        self.play(Write(step3))
-        self.wait(2)
-
-        final_box = SurroundingRectangle(summary_group, color=GOLD)
-        self.play(Create(final_box))
+        self.play(Write(line4))
         self.wait(3)

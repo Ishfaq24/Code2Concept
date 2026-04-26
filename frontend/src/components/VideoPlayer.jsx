@@ -1,7 +1,7 @@
 import React from 'react';
 import './VideoPlayer.css'; // Import the standard CSS file
 
-const VideoPlayer = ({ videoUrl, downloadUrl, pdfDownloadUrl, pdfStatus, pdfError, onRetryPdf, posterUrl }) => {
+const VideoPlayer = ({ videoUrl, downloadUrl, posterUrl }) => {
   if (!videoUrl) return null;
 
   return (
@@ -27,37 +27,7 @@ const VideoPlayer = ({ videoUrl, downloadUrl, pdfDownloadUrl, pdfStatus, pdfErro
         >
           Download Video
         </a>
-        {pdfDownloadUrl && (
-          <a
-            className="video-download-button video-download-button-secondary"
-            href={pdfDownloadUrl}
-            download="study-guide.pdf"
-          >
-            Download PDF Guide
-          </a>
-        )}
-        {!pdfDownloadUrl && (
-          <>
-            {pdfStatus === "unavailable" && onRetryPdf ? (
-              <button
-                type="button"
-                className="video-download-button video-download-button-secondary"
-                onClick={onRetryPdf}
-              >
-                Retry PDF Guide
-              </button>
-            ) : (
-              <span
-                className="video-download-button video-download-button-disabled"
-                title="Generating PDF guide..."
-              >
-                {pdfStatus === "retrying" ? "Retrying PDF Guide" : "Preparing PDF Guide"}
-              </span>
-            )}
-          </>
-        )}
       </div>
-      {pdfError && <p className="video-pdf-error">PDF note: {pdfError}</p>}
     </div>
   );
 };

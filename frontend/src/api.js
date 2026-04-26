@@ -1,12 +1,12 @@
 const BASE_URL = "http://127.0.0.1:8000";
 
-export const generateVideo = async (topic, language = "en") => {
+export const generateVideo = async (topic, language = "en", generatePdf = false) => {
   const res = await fetch(`${BASE_URL}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ topic, language }),
+    body: JSON.stringify({ topic, language, generate_pdf: generatePdf }),
   });
 
   return res.json();
