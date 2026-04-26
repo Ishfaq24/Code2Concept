@@ -42,6 +42,7 @@ app.add_middleware(
 class GenerateRequest(BaseModel):
     topic: str
     language: str = "en"
+    generate_pdf: bool = False
 
 
 @app.get("/")
@@ -90,11 +91,13 @@ async def generate_video(request: GenerateRequest):
             language_code,
         )
 
-        study_guide = llm_service.generate_study_guide(
-            topic,
-            "English",
-            "en",
-        )
+        study_guide = None
+        if request.generate_pdf:
+            study_guide = llm_service.generate_study_guide(
+                topic,
+                "English",
+                "en",
+            )
 
         # STEP 2: Clean, prepare and save code
         print("🧹 Step 2: Cleaning and saving code to file...")
@@ -185,17 +188,18 @@ async def generate_video(request: GenerateRequest):
             CURRENT_LANGUAGE_CODE = language_code
             pdf_error = None
 
-            try:
-                CURRENT_PDF_PATH = _build_study_guide_pdf(
-                    study_guide=study_guide,
-                    topic=topic,
-                    language_name=language_name,
-                    language_code=language_code,
-                    token=CURRENT_VIDEO_TOKEN,
-                )
-            except Exception as pdf_error:
-                pdf_error = str(pdf_error)
-                print(f"⚠️ PDF generation failed, continuing with video only. Error: {pdf_error}")
+            if request.generate_pdf and study_guide:
+                try:
+                    CURRENT_PDF_PATH = _build_study_guide_pdf(
+                        study_guide=study_guide,
+                        topic=topic,
+                        language_name=language_name,
+                        language_code=language_code,
+                        token=CURRENT_VIDEO_TOKEN,
+                    )
+                except Exception as pdf_error:
+                    pdf_error = str(pdf_error)
+                    print(f"⚠️ PDF generation failed, continuing with video only. Error: {pdf_error}")
 
             return {
                 "status": "success",
@@ -205,6 +209,7 @@ async def generate_video(request: GenerateRequest):
                 "pdf_path": CURRENT_PDF_PATH,
                 "pdf_available": bool(CURRENT_PDF_PATH),
                 "pdf_error": pdf_error,
+                "pdf_requested": bool(request.generate_pdf),
                 "language": language_code,
                 "voice_enabled": voice_enabled,
                 "narration_text": narration_text,
@@ -246,7 +251,14 @@ def _build_study_guide_pdf(study_guide, topic: str, language_name: str, language
         ) from exc
 
     os.makedirs("media/pdfs", exist_ok=True)
-    pdf_path = f"media/pdfs/{token}_study_guide.pdf"
+
+    def sanitize_filename(value: str) -> str:
+        cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", value.strip())
+        cleaned = re.sub(r"_+", "_", cleaned).strip("._-")
+        return cleaned or "study_guide"
+
+    pdf_file_name = f"{sanitize_filename(topic)}.pdf"
+    pdf_path = os.path.join("media/pdfs", pdf_file_name)
 
     def safe_text(value: str) -> str:
         text = value or ""

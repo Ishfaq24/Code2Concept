@@ -232,6 +232,44 @@ body {
   opacity: 0.5;
 }
 
+.pdf-control-card {
+  min-width: 220px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.pdf-control-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-main);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.pdf-control-label input {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.pdf-control-label span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pdf-control-label small {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
 .primary-button {
   padding: 12px 20px;
   border-radius: 999px;
@@ -322,6 +360,11 @@ body {
 
   .input-row {
     gap: 8px;
+  }
+
+  .pdf-control-card {
+    width: 100%;
+    min-width: 0;
   }
 
   .primary-button {

@@ -17,6 +17,7 @@ const LANGUAGE_OPTIONS = [
 function Home() {
   const [topic, setTopic] = useState("");
   const [language, setLanguage] = useState("en");
+  const [includePdf, setIncludePdf] = useState(false);
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
@@ -32,19 +33,23 @@ function Home() {
     setVideoUrl(null);
     setDownloadUrl(null);
     setPdfDownloadUrl(null);
-    setPdfStatus("idle");
+    setPdfStatus(includePdf ? "idle" : "disabled");
     setPdfError(null);
     setVideoToken(null);
 
     try {
-      const res = await generateVideo(topic.trim(), language);
+      const res = await generateVideo(topic.trim(), language, includePdf);
       // Only show video when backend reports a successful render
       if (res.status === "success") {
         const videoBaseUrl = getVideoUrl(res.video_token);
         setVideoToken(res.video_token);
         setDownloadUrl(videoBaseUrl);
         setPdfDownloadUrl(res.pdf_available ? getPdfUrl(res.video_token) : null);
-        setPdfStatus(res.pdf_available ? "ready" : "unavailable");
+        if (!includePdf) {
+          setPdfStatus("disabled");
+        } else {
+          setPdfStatus(res.pdf_available ? "ready" : "unavailable");
+        }
         setPdfError(res.pdf_error || null);
         const separator = videoBaseUrl.includes("?") ? "&" : "?";
         // Add cache-busting query param
@@ -122,12 +127,26 @@ function Home() {
                 </option>
               ))}
             </select>
+            <div className="pdf-control-card" aria-label="PDF study guide option">
+              <label className="pdf-control-label">
+                <input
+                  type="checkbox"
+                  checked={includePdf}
+                  onChange={(e) => setIncludePdf(e.target.checked)}
+                  disabled={loading}
+                />
+                <span>
+                  Generate PDF study guide
+                  <small>English PDF named after your topic</small>
+                </span>
+              </label>
+            </div>
             <button
               className="primary-button"
               onClick={handleGenerate}
               disabled={loading || !topic.trim()}
             >
-              {loading ? "Generating…" : "Generate Video"}
+              {loading ? "Generating…" : includePdf ? "Generate Video + PDF" : "Generate Video"}
             </button>
           </div>
 
@@ -153,6 +172,7 @@ function Home() {
                 pdfDownloadUrl={pdfDownloadUrl}
                 pdfStatus={pdfStatus}
                 pdfError={pdfError}
+                pdfRequested={includePdf}
                 onRetryPdf={handleRetryPdf}
               />
             ) : (

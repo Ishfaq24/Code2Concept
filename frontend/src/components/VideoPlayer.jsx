@@ -1,7 +1,16 @@
 import React from 'react';
 import './VideoPlayer.css'; // Import the standard CSS file
 
-const VideoPlayer = ({ videoUrl, downloadUrl, pdfDownloadUrl, pdfStatus, pdfError, onRetryPdf, posterUrl }) => {
+const VideoPlayer = ({
+  videoUrl,
+  downloadUrl,
+  pdfDownloadUrl,
+  pdfStatus,
+  pdfError,
+  pdfRequested,
+  onRetryPdf,
+  posterUrl,
+}) => {
   if (!videoUrl) return null;
 
   return (
@@ -36,7 +45,7 @@ const VideoPlayer = ({ videoUrl, downloadUrl, pdfDownloadUrl, pdfStatus, pdfErro
             Download PDF Guide
           </a>
         )}
-        {!pdfDownloadUrl && (
+        {!pdfDownloadUrl && pdfRequested && (
           <>
             {pdfStatus === "unavailable" && onRetryPdf ? (
               <button
@@ -56,8 +65,13 @@ const VideoPlayer = ({ videoUrl, downloadUrl, pdfDownloadUrl, pdfStatus, pdfErro
             )}
           </>
         )}
+        {!pdfRequested && (
+          <span className="video-download-button video-download-button-disabled" title="PDF guide is optional. Enable it above before generating.">
+            PDF guide off
+          </span>
+        )}
       </div>
-      {pdfError && <p className="video-pdf-error">PDF note: {pdfError}</p>}
+      {pdfRequested && pdfError && <p className="video-pdf-error">PDF note: {pdfError}</p>}
     </div>
   );
 };
