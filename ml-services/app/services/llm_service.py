@@ -173,6 +173,120 @@ Constraints:
                 "and finally connect the concept back to real-world usage."
             )
 
+    def generate_study_guide(
+        self,
+        topic: str,
+        language_name: str = "English",
+        language_code: str = "en",
+    ) -> dict:
+        """Generate a richer study guide that can be exported as a PDF."""
+
+        prompt = f"""
+You are an expert teacher writing a polished study guide for a PDF handout.
+
+Create a detailed, classroom-ready study guide about the topic: "{topic}".
+Write the entire response in English only.
+Do not use any non-English script, even if the video narration is in another language.
+
+Return ONLY valid JSON with this structure:
+{{
+  "title": "...",
+  "subtitle": "...",
+  "overview": "...",
+  "core_concepts": [
+    {{"heading": "...", "content": "..."}},
+    {{"heading": "...", "content": "..."}}
+  ],
+  "worked_example": "...",
+  "real_world_applications": ["...", "...", "..."],
+  "common_misconceptions": ["...", "...", "..."],
+  "quick_recap": "...",
+  "practice_questions": ["...", "...", "..."],
+  "further_learning": ["...", "...", "..."]
+}}
+
+Rules:
+- No markdown fences, no commentary, no extra keys.
+- Make the content substantial enough for a 3-5 page PDF.
+- Use plain, precise language with strong conceptual explanations.
+- Include intuition, step-by-step logic, a worked example, common mistakes, and revision questions.
+- Avoid fluff; every section should add learning value.
+- Keep each paragraph reasonably short so it fits nicely in a printed handout.
+"""
+
+        try:
+            print(f"📘 Generating study guide for: {topic} ({language_name}/{language_code})")
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.6,
+                max_tokens=2200,
+            )
+
+            raw_text = response.choices[0].message.content.strip()
+            if raw_text.startswith("```"):
+                raw_text = raw_text.split("\n", 1)[-1]
+            if raw_text.endswith("```"):
+                raw_text = raw_text.rsplit("\n", 1)[0]
+
+            guide = json.loads(raw_text)
+            guide["title"] = guide.get("title") or f"Study Guide: {topic}"
+            guide["subtitle"] = guide.get("subtitle") or "A detailed revision guide for study and review"
+            guide["overview"] = guide.get("overview") or ""
+            guide["core_concepts"] = guide.get("core_concepts") or []
+            guide["worked_example"] = guide.get("worked_example") or ""
+            guide["real_world_applications"] = guide.get("real_world_applications") or []
+            guide["common_misconceptions"] = guide.get("common_misconceptions") or []
+            guide["quick_recap"] = guide.get("quick_recap") or ""
+            guide["practice_questions"] = guide.get("practice_questions") or []
+            guide["further_learning"] = guide.get("further_learning") or []
+
+            return guide
+
+        except Exception as e:
+            print(f"❌ Error generating study guide: {e}")
+            return self._fallback_study_guide(topic, language_name, language_code)
+
+    def _fallback_study_guide(self, topic: str, language_name: str, language_code: str) -> dict:
+        return {
+            "title": f"Study Guide: {topic}",
+            "subtitle": "A detailed revision handout for learning and review",
+            "overview": f"This guide explains the core ideas of {topic}, how it works, and why it matters in practical settings. The goal is to give you a clear, printable reference you can read before revision or use after watching the video.",
+            "core_concepts": [
+                {"heading": "Core Idea", "content": f"Start by understanding the main purpose and intuition behind {topic}. Ask what problem it solves and why that problem is important."},
+                {"heading": "How It Works", "content": "Break the topic into small steps so the process becomes easier to follow and remember. When the steps are clear, the entire concept becomes much easier to retain."},
+                {"heading": "Why It Matters", "content": "This concept is useful because it helps with reasoning, problem-solving, and real-world applications. It is not just theory; it is a method for thinking and making predictions."},
+                {"heading": "Key Terms to Remember", "content": "Keep track of the main vocabulary, because strong definitions make revision easier and help you explain the topic with confidence."},
+            ],
+            "worked_example": f"A simple example helps connect theory to practice. For {topic}, imagine applying the idea step by step in a real scenario. Begin by identifying the input, then follow the process, and finally check the result against the expected outcome.",
+            "real_world_applications": [
+                f"Learning and teaching {topic} more effectively",
+                f"Using {topic} to solve practical problems",
+                "Connecting the concept to everyday decisions and analysis",
+                "Building more advanced ideas on top of the same foundation",
+            ],
+            "common_misconceptions": [
+                "It is often more approachable than it first appears when broken into steps.",
+                "Memorizing definitions is not enough without understanding the intuition.",
+                "Examples are essential for long-term recall and confidence.",
+                "A concept that seems simple can still be misunderstood if the process is not practiced.",
+            ],
+            "quick_recap": f"In short, {topic} becomes much easier to master when you study its definition, process, examples, and applications together. Review the core idea, test yourself with the example, and then revisit the misconceptions to see if you can explain the topic clearly.",
+            "practice_questions": [
+                f"Explain {topic} in your own words.",
+                f"Give one real-world example of {topic}.",
+                f"Which part of {topic} is most important and why?",
+                "What mistake would a beginner most likely make when first learning this topic?",
+            ],
+            "further_learning": [
+                "Draw a simple diagram to revise the concept.",
+                "Teach the topic to a friend in two minutes.",
+                "Write a one-page summary with the key points.",
+                "Try a second example without looking at the notes.",
+            ],
+        }
+
     def _ensure_target_language(
         self,
         text: str,

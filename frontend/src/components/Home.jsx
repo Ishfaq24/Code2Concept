@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateVideo, getVideoUrl } from "../api";
+import { generateVideo, getPdfUrl, getVideoUrl, regeneratePdf } from "../api";
 import VideoPlayer from "./VideoPlayer";
 import Loader from "./Loader";
 import Hero from "./Hero";
@@ -20,6 +20,10 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [videoUrl, setVideoUrl] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
+  const [pdfDownloadUrl, setPdfDownloadUrl] = useState(null);
+  const [pdfStatus, setPdfStatus] = useState("idle");
+  const [pdfError, setPdfError] = useState(null);
+  const [videoToken, setVideoToken] = useState(null);
 
   const handleGenerate = async () => {
     if (!topic.trim() || loading) return;
@@ -27,13 +31,21 @@ function Home() {
     setLoading(true);
     setVideoUrl(null);
     setDownloadUrl(null);
+    setPdfDownloadUrl(null);
+    setPdfStatus("idle");
+    setPdfError(null);
+    setVideoToken(null);
 
     try {
       const res = await generateVideo(topic.trim(), language);
       // Only show video when backend reports a successful render
       if (res.status === "success") {
         const videoBaseUrl = getVideoUrl(res.video_token);
+        setVideoToken(res.video_token);
         setDownloadUrl(videoBaseUrl);
+        setPdfDownloadUrl(res.pdf_available ? getPdfUrl(res.video_token) : null);
+        setPdfStatus(res.pdf_available ? "ready" : "unavailable");
+        setPdfError(res.pdf_error || null);
         const separator = videoBaseUrl.includes("?") ? "&" : "?";
         // Add cache-busting query param
         setVideoUrl(videoBaseUrl + `${separator}t=${Date.now()}`);
@@ -45,6 +57,29 @@ function Home() {
       alert("Failed to connect to backend");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetryPdf = async () => {
+    if (!videoToken || loading || pdfStatus === "retrying") return;
+
+    setPdfStatus("retrying");
+    setPdfError(null);
+
+    try {
+      const res = await regeneratePdf(videoToken);
+      if (res.status === "success" && res.pdf_available) {
+        setPdfDownloadUrl(getPdfUrl(videoToken));
+        setPdfStatus("ready");
+      } else {
+        setPdfDownloadUrl(null);
+        setPdfStatus("unavailable");
+        setPdfError(res.error || "PDF could not be generated yet.");
+      }
+    } catch (err) {
+      setPdfDownloadUrl(null);
+      setPdfStatus("unavailable");
+      setPdfError("Could not reach backend while retrying PDF generation.");
     }
   };
 
@@ -108,11 +143,18 @@ function Home() {
           <div className="output-block">
             <div className="panel-header output-header">
               <h2>Generated video</h2>
-              <p>Your generated lecture will appear below automatically.</p>
+              <p>Your generated lecture and study guide will appear below automatically.</p>
             </div>
 
             {videoUrl ? (
-              <VideoPlayer videoUrl={videoUrl} downloadUrl={downloadUrl || videoUrl} />
+              <VideoPlayer
+                videoUrl={videoUrl}
+                downloadUrl={downloadUrl || videoUrl}
+                pdfDownloadUrl={pdfDownloadUrl}
+                pdfStatus={pdfStatus}
+                pdfError={pdfError}
+                onRetryPdf={handleRetryPdf}
+              />
             ) : (
               <div className="preview-placeholder">
                 <div className="preview-glow" />
