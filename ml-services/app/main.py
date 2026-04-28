@@ -1,7 +1,12 @@
 import os
 import re
+import json
+import shutil
+import hashlib
+import sqlite3
 import subprocess
 import uuid
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +34,11 @@ CURRENT_STUDY_GUIDE = None
 CURRENT_TOPIC = None
 CURRENT_LANGUAGE_NAME = None
 CURRENT_LANGUAGE_CODE = None
+CURRENT_CACHE_KEY = None
+
+CACHE_DB_PATH = "generated/topic_cache.db"
+CACHE_VIDEO_DIR = "generated/cache/videos"
+CACHE_PDF_DIR = "generated/cache/pdfs"
 
 # CORS
 app.add_middleware(
@@ -45,6 +55,226 @@ class GenerateRequest(BaseModel):
     generate_pdf: bool = False
 
 
+def _ensure_cache_storage() -> None:
+    os.makedirs("generated", exist_ok=True)
+    os.makedirs(CACHE_VIDEO_DIR, exist_ok=True)
+    os.makedirs(CACHE_PDF_DIR, exist_ok=True)
+
+
+def _cache_connection() -> sqlite3.Connection:
+    _ensure_cache_storage()
+    conn = sqlite3.connect(CACHE_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _init_cache_db() -> None:
+    with _cache_connection() as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS topic_cache (
+                cache_key TEXT PRIMARY KEY,
+                topic TEXT NOT NULL,
+                normalized_topic TEXT NOT NULL,
+                language_code TEXT NOT NULL,
+                language_name TEXT NOT NULL,
+                narration_text TEXT,
+                study_guide_json TEXT,
+                video_path TEXT NOT NULL,
+                pdf_path TEXT,
+                voice_enabled INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                hit_count INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_topic_cache_lookup
+            ON topic_cache (normalized_topic, language_code)
+            """
+        )
+
+
+def _normalize_topic(topic: str) -> str:
+    return re.sub(r"\s+", " ", topic.strip().lower())
+
+
+def _cache_key(topic: str, language_code: str) -> str:
+    raw = f"{_normalize_topic(topic)}|{language_code.strip().lower()}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _safe_load_json(raw: str):
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+
+
+def _copy_to_cache(source_path: str, destination_path: str) -> str:
+    if not source_path or not os.path.exists(source_path):
+        return None
+    os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+    shutil.copy2(source_path, destination_path)
+    return destination_path
+
+
+def _now_utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _get_cached_entry(topic: str, language_code: str):
+    key = _cache_key(topic, language_code)
+    with _cache_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM topic_cache WHERE cache_key = ?",
+            (key,),
+        ).fetchone()
+
+        if not row:
+            return None
+
+        video_path = row["video_path"]
+        if not video_path or not os.path.exists(video_path):
+            conn.execute("DELETE FROM topic_cache WHERE cache_key = ?", (key,))
+            return None
+
+        conn.execute(
+            "UPDATE topic_cache SET hit_count = hit_count + 1, updated_at = datetime('now') WHERE cache_key = ?",
+            (key,),
+        )
+
+        return dict(row)
+
+
+def _save_cache_entry(
+    topic: str,
+    language_code: str,
+    language_name: str,
+    narration_text: str,
+    study_guide,
+    source_video_path: str,
+    voice_enabled: bool,
+    source_pdf_path: str = None,
+):
+    key = _cache_key(topic, language_code)
+    cached_video_path = _copy_to_cache(
+        source_video_path,
+        os.path.join(CACHE_VIDEO_DIR, f"{key}.mp4"),
+    )
+    if not cached_video_path:
+        return None
+
+    cached_pdf_path = None
+    if source_pdf_path:
+        cached_pdf_path = _copy_to_cache(
+            source_pdf_path,
+            os.path.join(CACHE_PDF_DIR, f"{key}.pdf"),
+        )
+
+    now = _now_utc_iso()
+    study_guide_json = json.dumps(study_guide) if study_guide else None
+
+    with _cache_connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO topic_cache (
+                cache_key, topic, normalized_topic, language_code, language_name,
+                narration_text, study_guide_json, video_path, pdf_path, voice_enabled,
+                created_at, updated_at, hit_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            ON CONFLICT(cache_key) DO UPDATE SET
+                topic = excluded.topic,
+                language_name = excluded.language_name,
+                narration_text = excluded.narration_text,
+                study_guide_json = COALESCE(excluded.study_guide_json, topic_cache.study_guide_json),
+                video_path = excluded.video_path,
+                pdf_path = COALESCE(excluded.pdf_path, topic_cache.pdf_path),
+                voice_enabled = excluded.voice_enabled,
+                updated_at = excluded.updated_at
+            """,
+            (
+                key,
+                topic,
+                _normalize_topic(topic),
+                language_code,
+                language_name,
+                narration_text,
+                study_guide_json,
+                cached_video_path,
+                cached_pdf_path,
+                int(bool(voice_enabled)),
+                now,
+                now,
+            ),
+        )
+    return key
+
+
+def _list_cached_topics(limit: int = 50):
+    safe_limit = max(1, min(limit, 200))
+    with _cache_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                topic,
+                language_code,
+                language_name,
+                voice_enabled,
+                CASE WHEN pdf_path IS NOT NULL THEN 1 ELSE 0 END AS has_pdf,
+                hit_count,
+                updated_at
+            FROM topic_cache
+            ORDER BY updated_at DESC
+            LIMIT ?
+            """,
+            (safe_limit,),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def _cache_totals():
+    with _cache_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COUNT(*) AS total_topics,
+                COALESCE(SUM(hit_count), 0) AS total_hits,
+                COALESCE(SUM(CASE WHEN pdf_path IS NOT NULL THEN 1 ELSE 0 END), 0) AS topics_with_pdf
+            FROM topic_cache
+            """
+        ).fetchone()
+    return dict(row)
+
+
+def _update_cache_pdf(cache_key: str, pdf_source_path: str):
+    if not cache_key or not pdf_source_path or not os.path.exists(pdf_source_path):
+        return None
+
+    cached_pdf_path = _copy_to_cache(
+        pdf_source_path,
+        os.path.join(CACHE_PDF_DIR, f"{cache_key}.pdf"),
+    )
+    if not cached_pdf_path:
+        return None
+
+    with _cache_connection() as conn:
+        conn.execute(
+            "UPDATE topic_cache SET pdf_path = ?, updated_at = datetime('now') WHERE cache_key = ?",
+            (cached_pdf_path, cache_key),
+        )
+
+    return cached_pdf_path
+
+
+_init_cache_db()
+
+
 @app.get("/")
 async def root():
     return {"message": "Video Generation API running"}
@@ -55,11 +285,33 @@ async def health():
     return {"status": "healthy"}
 
 
+@app.get("/cache/topics")
+async def cached_topics(limit: int = 50):
+    """List recent cached topics shared across all users."""
+    topics = _list_cached_topics(limit=limit)
+    return {
+        "status": "success",
+        "shared_cache": True,
+        "count": len(topics),
+        "topics": topics,
+    }
+
+
+@app.get("/cache/stats")
+async def cache_stats():
+    """High-level stats for the shared topic cache."""
+    return {
+        "status": "success",
+        "shared_cache": True,
+        **_cache_totals(),
+    }
+
+
 @app.post("/generate")
 async def generate_video(request: GenerateRequest):
     """Generate video from topic - ONE STEP process"""
     global CURRENT_VIDEO_PATH, CURRENT_VIDEO_TOKEN, CURRENT_PDF_PATH
-    global CURRENT_STUDY_GUIDE, CURRENT_TOPIC, CURRENT_LANGUAGE_NAME, CURRENT_LANGUAGE_CODE
+    global CURRENT_STUDY_GUIDE, CURRENT_TOPIC, CURRENT_LANGUAGE_NAME, CURRENT_LANGUAGE_CODE, CURRENT_CACHE_KEY
     
     topic = request.topic.strip()
     language_code = request.language.lower().strip()
@@ -73,6 +325,53 @@ async def generate_video(request: GenerateRequest):
             "status": "error",
             "error": "Unsupported language",
             "supported_languages": list(SUPPORTED_LANGUAGES.keys()),
+        }
+
+    cached = _get_cached_entry(topic, language_code)
+    if cached:
+        print(f"\n⚡ Cache hit for topic: {topic} ({language_name})\n")
+
+        study_guide = _safe_load_json(cached.get("study_guide_json"))
+        cached_pdf_path = cached.get("pdf_path")
+        if cached_pdf_path and not os.path.exists(cached_pdf_path):
+            cached_pdf_path = None
+
+        if request.generate_pdf and not cached_pdf_path and study_guide:
+            try:
+                generated_pdf_path = _build_study_guide_pdf(
+                    study_guide=study_guide,
+                    topic=topic,
+                    language_name=language_name,
+                    language_code=language_code,
+                    token="cached",
+                )
+                cached_pdf_path = _update_cache_pdf(cached["cache_key"], generated_pdf_path)
+            except Exception as pdf_build_error:
+                print(f"⚠️ Could not build PDF from cache: {pdf_build_error}")
+
+        CURRENT_VIDEO_TOKEN = uuid.uuid4().hex
+        CURRENT_VIDEO_PATH = cached["video_path"]
+        CURRENT_PDF_PATH = cached_pdf_path if request.generate_pdf else None
+        CURRENT_STUDY_GUIDE = study_guide
+        CURRENT_TOPIC = topic
+        CURRENT_LANGUAGE_NAME = language_name
+        CURRENT_LANGUAGE_CODE = language_code
+        CURRENT_CACHE_KEY = cached["cache_key"]
+
+        return {
+            "status": "success",
+            "message": "Video loaded from cache",
+            "topic": topic,
+            "video_path": CURRENT_VIDEO_PATH,
+            "pdf_path": CURRENT_PDF_PATH,
+            "pdf_available": bool(CURRENT_PDF_PATH),
+            "pdf_error": None,
+            "pdf_requested": bool(request.generate_pdf),
+            "language": language_code,
+            "voice_enabled": bool(cached.get("voice_enabled")),
+            "narration_text": cached.get("narration_text"),
+            "video_token": CURRENT_VIDEO_TOKEN,
+            "cached": True,
         }
     
     print(f"\n🚀 Generating video for: {topic} ({language_name})\n")
@@ -201,6 +500,17 @@ async def generate_video(request: GenerateRequest):
                     pdf_error = str(pdf_error)
                     print(f"⚠️ PDF generation failed, continuing with video only. Error: {pdf_error}")
 
+            CURRENT_CACHE_KEY = _save_cache_entry(
+                topic=topic,
+                language_code=language_code,
+                language_name=language_name,
+                narration_text=narration_text,
+                study_guide=study_guide,
+                source_video_path=final_video_path,
+                voice_enabled=voice_enabled,
+                source_pdf_path=CURRENT_PDF_PATH,
+            )
+
             return {
                 "status": "success",
                 "message": "Video generated successfully",
@@ -214,6 +524,7 @@ async def generate_video(request: GenerateRequest):
                 "voice_enabled": voice_enabled,
                 "narration_text": narration_text,
                 "video_token": CURRENT_VIDEO_TOKEN,
+                "cached": False,
             }
         else:
             error_msg = result.stderr[:1000] if result.stderr else result.stdout[:1000]
@@ -436,7 +747,7 @@ async def get_pdf(token: str, t: str = None):
 @app.post("/regenerate-pdf")
 async def regenerate_pdf(token: str):
     """Retry generating the PDF without re-rendering the video."""
-    global CURRENT_PDF_PATH
+    global CURRENT_PDF_PATH, CURRENT_CACHE_KEY
 
     if not CURRENT_VIDEO_TOKEN or token != CURRENT_VIDEO_TOKEN:
         raise HTTPException(status_code=403, detail="Access denied")
@@ -452,6 +763,11 @@ async def regenerate_pdf(token: str):
             language_code=CURRENT_LANGUAGE_CODE or "en",
             token=CURRENT_VIDEO_TOKEN,
         )
+
+        if CURRENT_CACHE_KEY:
+            cached_pdf = _update_cache_pdf(CURRENT_CACHE_KEY, CURRENT_PDF_PATH)
+            if cached_pdf:
+                CURRENT_PDF_PATH = cached_pdf
 
         return {
             "status": "success",
