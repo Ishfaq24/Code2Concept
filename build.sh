@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
-cd "$(dirname "$0")/ml-services"
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-#!/bin/bash
 cd ml-services
+
+python -m pip install --upgrade pip
 pip install -r requirements.txt
