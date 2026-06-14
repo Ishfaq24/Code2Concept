@@ -272,6 +272,58 @@ def _update_cache_pdf(cache_key: str, pdf_source_path: str):
     return cached_pdf_path
 
 
+def _upgrade_cached_voice(
+    cached: dict,
+    topic: str,
+    language_name: str,
+    language_code: str,
+    cached_pdf_path: str = None,
+) -> dict:
+    """Try to rebuild a voiced cached video when the stored cache is silent."""
+
+    if not cached or cached.get("voice_enabled"):
+        return cached
+
+    narration_text = (cached.get("narration_text") or "").strip()
+    video_path = cached.get("video_path")
+    if not narration_text or not video_path or not os.path.exists(video_path):
+        return cached
+
+    try:
+        print("🎙️ Cache hit is silent; rebuilding voiced video...")
+        audio_filename = f"{cached['cache_key']}_narration_{language_code}.mp3"
+        audio_path = generate_narration_audio(
+            narration_text,
+            filename=audio_filename,
+            language=language_code,
+        )
+
+        merged_path = merge_audio_with_video(video_path, audio_path)
+        if not merged_path:
+            print("⚠️ Could not rebuild voiced cache entry; keeping silent video")
+            return cached
+
+        _save_cache_entry(
+            topic=topic,
+            language_code=language_code,
+            language_name=language_name,
+            narration_text=narration_text,
+            study_guide=_safe_load_json(cached.get("study_guide_json")),
+            source_video_path=merged_path,
+            voice_enabled=True,
+            source_pdf_path=cached_pdf_path,
+        )
+
+        updated_cached = dict(cached)
+        updated_cached["video_path"] = os.path.join(CACHE_VIDEO_DIR, f"{cached['cache_key']}.mp4")
+        updated_cached["voice_enabled"] = 1
+        return updated_cached
+
+    except Exception as voice_error:
+        print(f"⚠️ Failed to rebuild voiced cache entry: {voice_error}")
+        return cached
+
+
 _init_cache_db()
 
 
@@ -348,6 +400,14 @@ async def generate_video(request: GenerateRequest):
                 cached_pdf_path = _update_cache_pdf(cached["cache_key"], generated_pdf_path)
             except Exception as pdf_build_error:
                 print(f"⚠️ Could not build PDF from cache: {pdf_build_error}")
+
+        cached = _upgrade_cached_voice(
+            cached=cached,
+            topic=topic,
+            language_name=language_name,
+            language_code=language_code,
+            cached_pdf_path=cached_pdf_path,
+        )
 
         CURRENT_VIDEO_TOKEN = uuid.uuid4().hex
         CURRENT_VIDEO_PATH = cached["video_path"]
