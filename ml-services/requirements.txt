@@ -6,3 +6,4 @@ python-dotenv
 gTTS
 pyttsx3
 reportlab
+openai>=1.0.0
