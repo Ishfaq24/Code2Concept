@@ -5,136 +5,160 @@ class DemoScene(Scene):
         self.camera.background_color = "#0a0a1a"
 
         # --- SECTION 1: TITLE SLIDE ---
-        title = Text("Neural Networks", font_size=40, color="#00FFFF").shift(UP * 0.5)
-        subtitle = Text("Mimicking the Human Brain", font_size=24, color=LIGHT_GRAY).next_to(title, DOWN, buff=0.4)
+        title = Text("What is an Interpreter?", font_size=40, color="#00FFFF").to_edge(UP)
+        underline = Line(LEFT, RIGHT, color=GOLD).scale(3).next_to(title, DOWN, buff=0.2)
 
-        underline = Line(start=LEFT*2, end=RIGHT*2, color=GOLD).next_to(subtitle, DOWN, buff=0.3)
+        subtitle = Text("Understanding Code Execution", font_size=24, color=LIGHT_GRAY).next_to(underline, DOWN, buff=0.5)
 
-        self.play(Write(title), run_time=1.2)
-        self.play(FadeIn(subtitle, shift=UP * 0.3), run_time=1)
+        self.play(Write(title), run_time=1)
         self.play(Create(underline), run_time=0.8)
-        self.wait(2)
-        self.play(FadeOut(title), FadeOut(subtitle), FadeOut(underline))
+        self.play(FadeIn(subtitle, shift=UP), run_time=1)
+        self.wait(self.wait(2))
+        self.play(FadeOut(title), FadeOut(underline), FadeOut(subtitle))
 
-        # --- SECTION 2: THE BIOLOGICAL ANALOGY ---
-        concept_title = Text("The Inspiration", font_size=32, color="#00FFFF").to_edge(UP)
+        # --- SECTION 2: THE CONCEPT ---
+        concept_title = Text("The Basic Concept", font_size=36, color="#00FFFF").to_edge(UP)
         self.play(Write(concept_title))
 
-        neuron_circle = Circle(radius=1, color=GOLD, fill_opacity=0.2).shift(LEFT * 3)
-        neuron_label = Text("Biological\nNeuron", font_size=20, color=WHITE).next_to(neuron_circle, DOWN)
+        def_text1 = Text("An interpreter is a program", font_size=28, color=WHITE)
+        def_text2 = Text("that executes instructions", font_size=28, color=WHITE)
+        def_text3 = Text("directly without prior compilation.", font_size=28, color=WHITE)
 
-        axon_line = Line(neuron_circle.get_right(), RIGHT * 1, color=WHITE)
-        synapse_dot = Dot(point=RIGHT * 1, color=GOLD)
+        def_group = VGroup(def_text1, def_text2, def_text3).arrange(DOWN, aligned_edge=LEFT, buff=0.4)
+        def_group.move_to(ORIGIN).shift(UP*0.5)
 
-        bio_group = VGroup(neuron_circle, neuron_label, axon_line, synapse_dot).center()
+        for line in def_group:
+            self.play(Write(line), run_time=1)
+            self.wait(0.5)
 
-        self.play(DrawBorderThenFill(neuron_circle), Write(neuron_label), run_time=1)
-        self.play(Create(axon_line), FadeIn(synapse_dot), run_time=1)
-        self.wait(1)
-
-        self.play(FadeOut(bio_group), FadeOut(concept_title))
-
-        # --- SECTION 3: THE ARTIFICIAL NEURON (PERCEPTRON) ---
-        concept_title_2 = Text("The Artificial Neuron", font_size=32, color="#00FFFF").to_edge(UP)
-        self.play(Write(concept_title_2))
-
-        # Inputs
-        inputs = VGroup(*[Circle(radius=0.3, color=BLUE, fill_opacity=0.5) for _ in range(3)])
-        inputs.arrange(DOWN, buff=0.5).shift(LEFT * 4)
-        input_labels = VGroup(*[Text(f"x{i+1}", font_size=20) for i in range(3)])
-        for i in range(3):
-            input_labels[i].next_to(inputs[i], LEFT, buff=0.3)
-
-        # Weights/Connections
-        neuron_body = Circle(radius=0.7, color=GOLD, fill_opacity=0.3).shift(RIGHT * 0)
-        neuron_label_2 = Text("Sum & Activate", font_size=18, color=WHITE).move_to(neuron_body.get_center())
-
-        connections = VGroup(*[Line(inputs[i].get_right(), neuron_body.get_left(), color=GRAY_A) for i in range(3)])
-
-        # Output
-        output_node = Circle(radius=0.3, color=GREEN, fill_opacity=0.5).shift(RIGHT * 4)
-        output_label = Text("Output (y)", font_size=20).next_to(output_node, RIGHT)
-        output_line = Line(neuron_body.get_right(), output_node.get_left(), color=WHITE)
-
-        self.play(FadeIn(inputs, shift=RIGHT), Write(input_labels), run_time=1)
-        self.play(Create(connections), run_time=1)
-        self.play(DrawBorderThenFill(neuron_body), Write(neuron_label_2), run_time=1)
-        self.play(Create(output_line), FadeIn(output_node), Write(output_label), run_time=1)
-
-        # Highlight the process
-        box = SurroundingRectangle(neuron_body, color=YELLOW, buff=0.2)
-        self.play(Create(box), run_time=0.8)
-        self.play(Indicate(box), run_time=1)
+        highlight_box = SurroundingRectangle(def_text3, color=GOLD, buff=0.1)
+        self.play(Create(highlight_box))
+        self.play(Indicate(def_text3, color=GOLD))
         self.wait(2)
+        self.play(FadeOut(*self.mobjects))
 
-        self.play(FadeOut(inputs), FadeOut(input_labels), FadeOut(connections),
-                  FadeOut(neuron_body), FadeOut(neuron_label_2), FadeOut(output_node),
-                  FadeOut(output_label), FadeOut(output_line), FadeOut(box), FadeOut(concept_title_2))
+        # --- SECTION 3: VISUAL WORKFLOW (THE "ON-THE-FLY" PROCESS) ---
+        flow_title = Text("How it Works: Line-by-Line", font_size=36, color="#00FFFF").to_edge(UP)
+        self.play(Write(flow_title))
 
-        # --- SECTION 4: THE FULL NETWORK ---
-        concept_title_3 = Text("The Neural Network Architecture", font_size=32, color="#00FFFF").to_edge(UP)
-        self.play(Write(concept_title_3))
+        # Components
+        source_code = Rectangle(height=3, width=2, color=WHITE, fill_opacity=0.1)
+        source_label = Text("Source Code", font_size=24, color=LIGHT_GRAY).next_to(source_code, UP)
 
-        def create_layer(n, pos, color):
-            layer = VGroup(*[Circle(radius=0.25, color=color, fill_opacity=0.6) for _ in range(n)])
-            layer.arrange(DOWN, buff=0.4).move_to(pos)
-            return layer
+        interpreter_box = RoundedRectangle(corner_radius=0.2, height=2, width=3, color=GOLD, fill_opacity=0.2)
+        interpreter_label = Text("Interpreter", font_size=28, color=GOLD).next_to(interpreter_box, UP)
 
-        layer1 = create_layer(3, LEFT * 3, BLUE)
-        layer2 = create_layer(4, 0, GOLD)
-        layer3 = create_layer(2, RIGHT * 3, GREEN)
+        output_box = Rectangle(height=1, width=2, color=GREEN, fill_opacity=0.1)
+        output_label = Text("Output", font_size=24, color=LIGHT_GRAY).next_to(output_box, UP)
 
-        # Connections between layers
-        all_conns = VGroup()
-        for n1 in layer1:
-            for n2 in layer2:
-                all_conns.add(Line(n1.get_right(), n2.get_left(), stroke_width=1, color=GRAY_B))
-        for n2 in layer2:
-            for n3 in layer3:
-                all_conns.add(Line(n2.get_right(), n3.get_left(), stroke_width=1, color=GRAY_B))
-
-        self.play(FadeIn(layer1, shift=RIGHT), run_time=0.8)
-        self.play(Create(all_conns), run_time=2)
-        self.play(FadeIn(layer2, shift=RIGHT), run_time=0.8)
-        self.play(FadeIn(layer3, shift=RIGHT), run_time=0.8)
-
-        # Flow Animation
-        flow_dots = VGroup()
-        for line in all_conns:
-            dot = Dot(line.get_start(), radius=0.05, color=WHITE)
-            flow_dots.add(dot)
+        group_layout = VGroup(source_code, interpreter_box, output_box).arrange(RIGHT, buff=2)
+        group_layout.center()
 
         self.play(
-            *[MoveAlongPath(dot, line) for dot, line in zip(flow_dots, all_conns)],
-            run_time=2, rate_func=linear
+            FadeIn(source_code), FadeIn(source_label),
+            FadeIn(interpreter_box), FadeIn(interpreter_label),
+            FadeIn(output_box), FadeIn(output_label),
+            run_time=1.5
         )
-        self.play(FadeOut(flow_dots))
-        self.wait(2)
 
-        self.play(FadeOut(layer1), FadeOut(layer2), FadeOut(layer3), FadeOut(all_conns), FadeOut(concept_title_3))
+        # Code lines
+        line1 = Text("print('Hello')", font_size=20, color=WHITE).move_to(source_code.get_center() + UP*0.5)
+        line2 = Text("x = 5 + 2", font_size=20, color=WHITE).move_to(source_code.get_center())
+        line3 = Text("print(x)", font_size=20, color=WHITE).move_to(source_code.get_center() + DOWN*0.5)
 
-        # --- SECTION 5: KEY TAKEAWAY ---
-        final_title = Text("How it Learns", font_size=32, color="#00FFFF").to_edge(UP)
-        self.play(Write(final_title))
+        code_lines = VGroup(line1, line2, line3)
+        self.play(Write(code_lines), run_time=1)
 
-        points = VGroup(
-            Text("1. Forward Pass: Predicts output", font_size=24, color=WHITE),
-            Text("2. Loss Function: Measures error", font_size=24, color=WHITE),
-            Text("3. Backpropagation: Adjusts weights", font_size=24, color=WHITE),
-            Text("4. Iteration: Improves accuracy", font_size=24, color=WHITE)
-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.5).shift(LEFT * 1)
+        # Animation Loop
+        for i in range(3):
+            current_line = code_lines[i]
 
-        for point in points:
-            self.play(Write(point), run_time=1)
-            self.play(Indicate(point, color=GOLD), run_time=0.5)
+            # Highlight line
+            line_box = SurroundingRectangle(current_line, color="#00FFFF", buff=0.05)
+            self.play(Create(line_box), run_time=0.5)
+
+            # Move to interpreter
+            arrow1 = Arrow(line_box.get_right(), interpreter_box.get_left(), color="#00FFFF")
+            self.play(GrowArrow(arrow1), run_time=0.5)
+
+            # Process in interpreter
+            self.play(Indicate(interpreter_box, color=GOLD), run_time=0.6)
+
+            # Move to output
+            arrow2 = Arrow(interpreter_box.get_right(), output_box.get_left(), color=GREEN)
+            self.play(GrowArrow(arrow2), run_time=0.5)
+
+            # Show output
+            res_text = Text("Result " + str(i+1), font_size=18, color=GREEN).move_to(output_box.get_center())
+            self.play(Write(res_text), run_time=0.5)
+
+            self.play(FadeOut(line_box), FadeOut(arrow1), FadeOut(arrow2), run_time=0.3)
             self.wait(0.5)
 
         self.wait(2)
         self.play(FadeOut(*self.mobjects))
 
-        # --- FINAL CLOSING ---
-        closing_text = Text("The Foundation of Modern AI", font_size=30, color=GOLD)
-        self.play(GrowFromCenter(closing_text), run_time=1.5)
-        self.play(Indicate(closing_text), run_time=1)
+        # --- SECTION 4: COMPARISON (INTERPRETER VS COMPILER) ---
+        comp_title = Text("Interpreter vs Compiler", font_size=36, color="#00FFFF").to_edge(UP)
+        self.play(Write(comp_title))
+
+        # Table-like layout
+        left_col = VGroup(
+            Text("Interpreter", font_size=30, color=GOLD),
+            Text("• Reads line by line", font_size=24, color=WHITE),
+            Text("• Executes immediately", font_size=24, color=WHITE),
+            Text("• Slower execution", font_size=24, color=WHITE),
+            Text("• Easier debugging", font_size=24, color=WHITE)
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.4).shift(LEFT*3)
+
+        right_col = VGroup(
+            Text("Compiler", font_size=30, color="#00FFFF"),
+            Text("• Translates whole file", font_size=24, color=WHITE),
+            Text("• Creates binary file", font_size=24, color=WHITE),
+            Text("• Faster execution", font_size=24, color=WHITE),
+            Text("• Harder debugging", font_size=24, color=WHITE)
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.4).shift(RIGHT*3)
+
+        self.play(FadeIn(left_col, shift=RIGHT), run_time=1)
+        self.wait(0.5)
+        self.play(FadeIn(right_col, shift=LEFT), run_time=1)
+
+        # Highlighting a key difference
+        diff_box = SurroundingRectangle(left_col[1], color=GOLD)
+        self.play(Create(diff_box))
+        self.play(Indicate(left_col[1]))
+        self.wait(1)
+        self.play(FadeOut(diff_box))
+
         self.wait(2)
-        self.play(ShrinkToCenter(closing_text), run_time=1)
+        self.play(FadeOut(*self.mobjects))
+
+        # --- SECTION 5: CONCLUSION ---
+        final_title = Text("Key Takeaway", font_size=40, color=GOLD).to_edge(UP)
+        summary = Text(
+            "Interpreters provide flexibility\nand speed of development by\nexecuting code on-the-fly.",
+            font_size=28,
+            color=WHITE,
+            t2c={"flexibility": "#00FFFF", "on-the-fly": GOLD},
+            line_spacing=1.2
+        ).move_to(ORIGIN)
+
+        self.play(Write(final_title))
+        self.play(FadeIn(summary, scale=0.8), run_time=1.5)
+
+        # Final Polish
+        circle_bg = Circle(radius=3, color=GOLD).set_stroke(opacity=0.2)
+        self.play(Create(circle_bg), run_time=2)
+        self.wait(3)
+
+        # Outro
+        self.play(
+            FadeOut(final_title),
+            FadeOut(summary),
+            FadeOut(circle_bg),
+            run_time=1
+        )
+
+        closing = Text("Thank You!", font_size=48, color="#00FFFF").move_to(ORIGIN)
+        self.play(GrowFromCenter(closing))
+        self.wait(2)
